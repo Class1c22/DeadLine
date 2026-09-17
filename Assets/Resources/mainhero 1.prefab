@@ -2580,7 +2580,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 3018417259049257040}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 6471137458805590463}
+        m_TargetAssemblyTypeName: PlayerDeathHandler, Assembly-CSharp
+        m_MethodName: ReturnToMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &3809384101811118315
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3229,7 +3241,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6992880909568783343
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8451,7 +8463,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 735892253929892754, guid: d92607fbcd84315419e8f204413f911b, type: 3}
         m_TargetAssemblyTypeName: GameRestartManager, Assembly-CSharp
         m_MethodName: RestartGame
         m_Mode: 1
