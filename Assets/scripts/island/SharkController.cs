@@ -59,6 +59,8 @@ public class SharkController : MonoBehaviourPun
     public float reactionDelay = 1.5f;
     [Tooltip("Прогрес-бар цього КОНКРЕТНОГО клієнта (кожен гравець бачить свій локальний UI-об'єкт з тим самим сценним ієрархічним шляхом) - призначити в інспекторі, а не передавати ззовні, бо через RPC не можна передати посилання на Unity-об'єкт.")]
     public FishProgressBar progressBar;
+    [Tooltip("Скільки риби треба, щоб бар заповнився і показався екран перемоги. Задається тут (на акулі), а не на кожному FishProgressBar окремо, і застосовується до progressBar автоматично в Start().")]
+    public int fishNeededToWin = 10;
     [Tooltip("Скільки секунд максимум чекати RPC_SetLikedSpecies перед тим, як зарахувати рибу нейтрально (0), а не як 'не сподобалась' (-1). Захист від гонки на старті сесії.")]
     public float maxPreferencesWaitSeconds = 3f;
 
@@ -117,6 +119,14 @@ public class SharkController : MonoBehaviourPun
             defaultMaterial = sharkRenderer.sharedMaterial;
         else
             Debug.LogWarning("[SharkController] Не знайдено Renderer - зміна матеріалу при уподобаній рибі працювати не буде.");
+
+        // Застосовуємо потрібну кількість риби до локального прогрес-бару
+        // ЦЬОГО клієнта. Виконується для всіх клієнтів (і мастера, і не-мастера),
+        // бо в кожного progressBar - свій локальний UI-об'єкт.
+        if (progressBar != null)
+            progressBar.fishNeeded = fishNeededToWin;
+        else
+            Debug.LogWarning("[SharkController] progressBar не призначено в інспекторі - fishNeededToWin не буде застосовано.");
 
         if (!photonView.IsMine)
         {
@@ -471,6 +481,13 @@ public class SharkController : MonoBehaviourPun
         // окремо від наступної "Like"/"Dislike".
         yield return new WaitForSeconds(reactionDelay);
 
+        // Захист від гонки зі сценою: якщо сцена перезавантажується (напр.
+        // натиснули "New Game") саме поки ця корутина чекала - об'єкт/View
+        // можуть бути вже в процесі знищення. Викликати RPC у такому стані
+        // якраз і спричиняє Photon-помилку "missing MonoBehaviours".
+        if (this == null || !gameObject.activeInHierarchy || photonView == null || !PhotonNetwork.InRoom)
+            yield break;
+
         animator.SetTrigger(preferencesTimedOut ? dislikeTriggerName : (liked ? likeTriggerName : dislikeTriggerName));
 
         int delta = preferencesTimedOut ? 0 : (liked ? 1 : -1);
@@ -478,6 +495,9 @@ public class SharkController : MonoBehaviourPun
 
         float remainingHold = Mathf.Max(0f, eatHoldDuration - reactionDelay);
         yield return new WaitForSeconds(remainingHold);
+
+        if (this == null || !gameObject.activeInHierarchy)
+            yield break;
 
         forcedPos = null;
         forcedRot = null;

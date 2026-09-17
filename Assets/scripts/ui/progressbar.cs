@@ -1,9 +1,17 @@
+using System;
 using UnityEngine;
 
 public class FishProgressBar : MonoBehaviour
 {
     [Tooltip("Скільки риби треба закинути, щоб бар заповнився повністю")]
     public int fishNeeded = 10;
+
+    /// <summary>
+    /// Викликається один раз, коли бар щойно заповнився повністю
+    /// (акула з'їла достатньо риби і "ситa"). На цю подію підписується
+    /// PlayerDeathHandler, щоб показати екран перемоги.
+    /// </summary>
+    public event Action OnFishBarFull;
 
     [Tooltip("Швидкість руху смужок")]
     public float scrollSpeedX = 1f;
@@ -12,6 +20,7 @@ public class FishProgressBar : MonoBehaviour
     private SpriteRenderer spriteRend;
     private Material matInstance;
     private int currentFish = 0;
+    private bool isFull = false;
 
     private float fullScaleX;
     private float leftEdgeX; // фіксована позиція лівого краю бару
@@ -47,8 +56,9 @@ public class FishProgressBar : MonoBehaviour
 
         Debug.Log("Риба зарахована! Прогрес: " + currentFish + "/" + fishNeeded);
 
-        if (currentFish >= fishNeeded)
+        if (currentFish >= fishNeeded && !isFull)
         {
+            isFull = true;
             OnBarFull();
         }
     }
@@ -72,6 +82,7 @@ public class FishProgressBar : MonoBehaviour
     private void OnBarFull()
     {
         Debug.Log("Бар заповнено! Риби достатньо.");
+        OnFishBarFull?.Invoke();
     }
 
     void OnDestroy()
