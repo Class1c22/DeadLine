@@ -481,6 +481,13 @@ public class SharkController : MonoBehaviourPun
         // окремо від наступної "Like"/"Dislike".
         yield return new WaitForSeconds(reactionDelay);
 
+        // Захист від гонки зі сценою: якщо сцена перезавантажується (напр.
+        // натиснули "New Game") саме поки ця корутина чекала - об'єкт/View
+        // можуть бути вже в процесі знищення. Викликати RPC у такому стані
+        // якраз і спричиняє Photon-помилку "missing MonoBehaviours".
+        if (this == null || !gameObject.activeInHierarchy || photonView == null || !PhotonNetwork.InRoom)
+            yield break;
+
         animator.SetTrigger(preferencesTimedOut ? dislikeTriggerName : (liked ? likeTriggerName : dislikeTriggerName));
 
         int delta = preferencesTimedOut ? 0 : (liked ? 1 : -1);
@@ -488,6 +495,9 @@ public class SharkController : MonoBehaviourPun
 
         float remainingHold = Mathf.Max(0f, eatHoldDuration - reactionDelay);
         yield return new WaitForSeconds(remainingHold);
+
+        if (this == null || !gameObject.activeInHierarchy)
+            yield break;
 
         forcedPos = null;
         forcedRot = null;

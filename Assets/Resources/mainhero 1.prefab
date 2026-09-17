@@ -2474,7 +2474,7 @@ GameObject:
   - component: {fileID: 5631177575807015824}
   - component: {fileID: 3809384101811118315}
   m_Layer: 8
-  m_Name: menu
+  m_Name: menuWin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8344,7 +8344,7 @@ GameObject:
   - component: {fileID: 6824770085590374703}
   - component: {fileID: 3333538296766252136}
   m_Layer: 8
-  m_Name: Button
+  m_Name: ButtonWin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
