@@ -74,7 +74,7 @@ public class PlayerDeathHandler : MonoBehaviourPun
     [Tooltip("Кнопка \"Меню\" усередині winUI. Працює так само, як menuButton на Game Over.")]
     public Button winMenuButton;
 
-    [Tooltip("FishProgressBar, що показує, наскільки акула ситa. Якщо не задано - шукається автоматично серед дочірніх об'єктів гравця.")]
+    [Tooltip("FishProgressBar, що показує, наскільки акула ситa. Якщо не задано - шукається автоматично на сцені (FindObjectOfType), бо цей об'єкт належить сцені, а не префабу гравця.")]
     public FishProgressBar fishProgressBar;
 
     [Tooltip("Чи вимикати керування гравцем (ті самі scriptsToDisable, що й при смерті), коли з'являється екран перемоги.")]
@@ -98,7 +98,7 @@ public class PlayerDeathHandler : MonoBehaviourPun
             island = FindObjectOfType<HeightmapIsland>();
 
         if (fishProgressBar == null)
-            fishProgressBar = GetComponentInChildren<FishProgressBar>(true);
+            fishProgressBar = FindObjectOfType<FishProgressBar>();
 
         // Підписуємось на "острів повністю з'їдений" незалежно від причини:
         // спрацює і від природного останнього укусу SharkBiteController
@@ -115,7 +115,7 @@ public class PlayerDeathHandler : MonoBehaviourPun
         if (fishProgressBar != null)
             fishProgressBar.OnFishBarFull += HandleFishBarFull;
         else
-            Debug.LogWarning("[PlayerDeathHandler] FishProgressBar не знайдено (ні вручну, ні автопошуком) - екран перемоги НЕ зможе з'явитись автоматично, коли акула ситa.");
+            Debug.LogWarning("[PlayerDeathHandler] FishProgressBar не знайдено (ні вручну, ні автопошуком на сцені) - екран перемоги НЕ зможе з'явитись автоматично, коли акула ситa.");
 
         BindRestartButton(restartButton);
         BindMenuButton(menuButton);

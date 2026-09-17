@@ -536,7 +536,7 @@ MonoBehaviour:
   maxOxygen: 100
   depleteRate: 10
   refillRate: 50
-  postProcessVolume: {fileID: 0}
+  postProcessVolume: {fileID: 2920541731308067913, guid: adf84ab87996153469c880c774ee0b1a, type: 3}
   vignetteMinIntensity: 0.5
   vignetteMaxIntensity: 1
   filmGrainMinIntensity: 0.158
@@ -6905,7 +6905,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &5251924912024851467
 RectTransform:
   m_ObjectHideFlags: 0
