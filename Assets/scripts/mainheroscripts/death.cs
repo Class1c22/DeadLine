@@ -64,27 +64,8 @@ public class PlayerDeathHandler : MonoBehaviourPun
     [Tooltip("Затримка (сек) після смерті гравця, перш ніж острів почне зникати.")]
     public float islandDevourStartDelay = 1f;
 
-    [Header("Win UI (перемога - акула повністю ситa)")]
-    [Tooltip("UI екрана перемоги (\"YOU WIN\"). Признач вручну в інспекторі (напр. об'єкт \"gameover (1)\"/\"winscreen\") - автопошук за назвою тут НЕ використовується, щоб не переплутати з gameOverUI.")]
-    public GameObject winUI;
-
-    [Tooltip("Кнопка \"New Game\" усередині winUI. Працює так само, як restartButton на Game Over - прив'язується в коді до GameRestartManager.")]
-    public Button winRestartButton;
-
-    [Tooltip("Кнопка \"Меню\" усередині winUI. Працює так само, як menuButton на Game Over.")]
-    public Button winMenuButton;
-
-    [Tooltip("FishProgressBar, що показує, наскільки акула ситa. Якщо не задано - шукається автоматично на сцені (FindObjectOfType), бо цей об'єкт належить сцені, а не префабу гравця.")]
-    public FishProgressBar fishProgressBar;
-
-    [Tooltip("Чи вимикати керування гравцем (ті самі scriptsToDisable, що й при смерті), коли з'являється екран перемоги.")]
-    public bool freezePlayerOnWin = true;
-
     private bool isDead;
     public bool IsDead => isDead;
-
-    private bool hasWon;
-    public bool HasWon => hasWon;
 
     void Awake()
     {
@@ -97,9 +78,6 @@ public class PlayerDeathHandler : MonoBehaviourPun
         if (island == null)
             island = FindObjectOfType<HeightmapIsland>();
 
-        if (fishProgressBar == null)
-            fishProgressBar = FindObjectOfType<FishProgressBar>();
-
         // Підписуємось на "острів повністю з'їдений" незалежно від причини:
         // спрацює і від природного останнього укусу SharkBiteController
         // (гравець ще живий, острова більше немає - все одно Game Over),
@@ -109,27 +87,14 @@ public class PlayerDeathHandler : MonoBehaviourPun
         if (island != null)
             island.OnIslandDevoured += HandleIslandDevoured;
 
-        // Підписуємось на "бар риби заповнився" (акула ситa) - показуємо
-        // екран перемоги. Спрацьовує локально на кожному клієнті, бо прогрес
-        // однаковий для всіх (RPC_AddProgress(RpcTarget.All) в SharkController).
-        if (fishProgressBar != null)
-            fishProgressBar.OnFishBarFull += HandleFishBarFull;
-        else
-            Debug.LogWarning("[PlayerDeathHandler] FishProgressBar не знайдено (ні вручну, ні автопошуком на сцені) - екран перемоги НЕ зможе з'явитись автоматично, коли акула ситa.");
-
         BindRestartButton(restartButton);
         BindMenuButton(menuButton);
-        BindRestartButton(winRestartButton);
-        BindMenuButton(winMenuButton);
     }
 
     void OnDestroy()
     {
         if (island != null)
             island.OnIslandDevoured -= HandleIslandDevoured;
-
-        if (fishProgressBar != null)
-            fishProgressBar.OnFishBarFull -= HandleFishBarFull;
     }
 
     /// <summary>
@@ -194,10 +159,9 @@ public class PlayerDeathHandler : MonoBehaviourPun
     }
 
     /// <summary>
-    /// Прив'язує клік довільної кнопки (restartButton АБО winRestartButton)
-    /// до GameRestartManager.RestartGame() у коді. GameRestartManager -
-    /// синглтон-об'єкт СЦЕНИ, тому Inspector OnClick на префабі гравця не
-    /// може на нього посилатись.
+    /// Прив'язує клік кнопки restartButton до GameRestartManager.RestartGame()
+    /// у коді. GameRestartManager - синглтон-об'єкт СЦЕНИ, тому Inspector
+    /// OnClick на префабі гравця не може на нього посилатись.
     /// </summary>
     private void BindRestartButton(Button button)
     {
@@ -215,10 +179,9 @@ public class PlayerDeathHandler : MonoBehaviourPun
     }
 
     /// <summary>
-    /// Прив'язує клік довільної кнопки (menuButton АБО winMenuButton) до
-    /// ReturnToMenu() у коді - для консистентності (і щоб не залежати від
-    /// Inspector OnClick, який зазвичай теж злітає після
-    /// PhotonNetwork.Instantiate префабу гравця).
+    /// Прив'язує клік кнопки menuButton до ReturnToMenu() у коді - для
+    /// консистентності (і щоб не залежати від Inspector OnClick, який
+    /// зазвичай теж злітає після PhotonNetwork.Instantiate префабу гравця).
     /// </summary>
     private void BindMenuButton(Button button)
     {
@@ -243,8 +206,6 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
         if (menuButton != null)
             menuButton.interactable = false;
-        if (winMenuButton != null)
-            winMenuButton.interactable = false;
 
         StartCoroutine(ReturnToMenuRoutine());
     }
@@ -280,9 +241,6 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
         if (gameOverUI != null && gameOverUI.activeSelf)
             gameOverUI.SetActive(false);
-
-        if (winUI != null && winUI.activeSelf)
-            winUI.SetActive(false);
     }
 
     public void Die()
@@ -370,49 +328,5 @@ public class PlayerDeathHandler : MonoBehaviourPun
     {
         yield return new WaitForSeconds(islandDevourStartDelay);
         sharkBiteController.DevourWholeIslandNow();
-    }
-
-    /// <summary>
-    /// Викликається подією FishProgressBar.OnFishBarFull, коли акула
-    /// назбирала достатньо риби (бар заповнився). Показує екран перемоги -
-    /// лише для власного (photonView.IsMine) гравця і лише один раз.
-    /// </summary>
-    private void HandleFishBarFull()
-    {
-        if (!photonView.IsMine) return;
-        if (hasWon) return;
-        if (isDead) return; // гравець вже програв - не показуємо перемогу поверх Game Over
-
-        hasWon = true;
-        ShowWin();
-    }
-
-    /// <summary>
-    /// Показує екран перемоги (winUI), за потреби вимикає керування гравцем
-    /// і ховає ігровий HUD - так само, як ShowGameOver() для Game Over.
-    /// </summary>
-    public void ShowWin()
-    {
-        if (!photonView.IsMine) return;
-
-        if (freezePlayerOnWin)
-        {
-            foreach (var script in scriptsToDisable)
-                if (script != null) script.enabled = false;
-        }
-
-        if (gameplayUI != null)
-        {
-            foreach (var ui in gameplayUI)
-                if (ui != null) ui.SetActive(false);
-        }
-
-        if (winUI != null)
-            winUI.SetActive(true);
-        else
-            Debug.LogWarning("[PlayerDeathHandler] winUI не призначено в інспекторі - екран перемоги не покажеться.");
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
     }
 }

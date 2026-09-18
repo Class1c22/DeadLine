@@ -513,11 +513,6 @@ MonoBehaviour:
   sharkBiteController: {fileID: 0}
   island: {fileID: 0}
   islandDevourStartDelay: 1
-  winUI: {fileID: 3599011117813758572}
-  winRestartButton: {fileID: 6824770085590374703}
-  winMenuButton: {fileID: 5631177575807015824}
-  fishProgressBar: {fileID: 0}
-  freezePlayerOnWin: 1
 --- !u!114 &6753443474739655597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -941,6 +936,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1920880872333474347}
+  - component: {fileID: 1428494260174937683}
+  - component: {fileID: 7117605580060594325}
   m_Layer: 8
   m_Name: ui
   m_TagString: Untagged
@@ -969,6 +966,53 @@ Transform:
   - {fileID: 5251924912024851467}
   m_Father: {fileID: 9142226080773944321}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1428494260174937683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1249532508093689072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhotonUnityNetworking::Photon.Pun.PhotonView
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 0
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
+--- !u!114 &7117605580060594325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1249532508093689072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc44880bfde612e43bf3d2b971346b9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWinHandler
+  winUI: {fileID: 3599011117813758572}
+  winRestartButton: {fileID: 6824770085590374703}
+  winMenuButton: {fileID: 5631177575807015824}
+  menuSceneName: Menu
+  scriptsToDisable:
+  - {fileID: 8120895012706953863}
+  - {fileID: 6525523162978575813}
+  - {fileID: 2322459525375322423}
+  - {fileID: 137573513662799732}
+  - {fileID: 3896251377884003705}
+  gameplayUI: []
+  freezePlayerOnWin: 1
+  deathHandler: {fileID: 6471137458805590463}
 --- !u!1 &1393286367113648858
 GameObject:
   m_ObjectHideFlags: 0
