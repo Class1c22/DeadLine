@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6936666271672595052}
+  - component: {fileID: -915663918977982394}
   m_Layer: 0
   m_Name: palm 2
   m_TagString: Untagged
@@ -25,13 +26,36 @@ Transform:
   m_GameObject: {fileID: 7123072507807233932}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -37.9913, y: -0.10000004, z: -7.7337384}
+  m_LocalPosition: {x: -38.171, y: -0.10000004, z: -7.7337384}
   m_LocalScale: {x: 0.14506185, y: 0.14506185, z: 0.14506185}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6123218125307208825}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &-915663918977982394
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7123072507807233932}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.95
+  m_Height: 7.34
+  m_Direction: 1
+  m_Center: {x: -3.6, y: 2.28, z: 2.3}
 --- !u!1001 &6012502367324734354
 PrefabInstance:
   m_ObjectHideFlags: 0
