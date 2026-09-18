@@ -1,5 +1,6 @@
 using Photon.Pun;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class FirstPersonCamera : MonoBehaviourPun
 {
@@ -52,8 +53,17 @@ public class FirstPersonCamera : MonoBehaviourPun
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
+
         if (Input.GetMouseButtonDown(0) && Cursor.lockState != CursorLockMode.Locked)
         {
+            // ВАЖЛИВО: якщо клік стався по UI-елементу (кнопка паузи, налаштувань,
+            // інвентаря тощо) - НЕ блокуємо курсор назад. Раніше блокування
+            // спрацьовувало в тому самому кадрі, що й клік, курсор миттєво ховався,
+            // і клік по кнопці "з'їдався" - саме тому кнопки нібито не працювали.
+            bool clickedOnUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (clickedOnUI)
+                return;
+
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             justLocked = true;
@@ -64,6 +74,12 @@ public class FirstPersonCamera : MonoBehaviourPun
             justLocked = false;
             return;
         }
+
+        // Поки курсор розблокований (відкритий будь-який UI) - персонажем
+        // і камерою керувати не можна. GameplayUIPanel.Open() додатково вимикає
+        // цей скрипт повністю, це - друга лінія захисту про всяк випадок.
+        if (Cursor.lockState != CursorLockMode.Locked)
+            return;
 
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * (invertYaw ? -1f : 1f);
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
