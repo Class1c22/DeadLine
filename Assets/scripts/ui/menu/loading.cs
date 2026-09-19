@@ -13,6 +13,7 @@ public class LoadingScreenController : MonoBehaviour
 
     private bool sceneLoaded;
     private bool playerSpawned;
+    private bool readyFired; // тригер Ready шлемо лише один раз за сеанс гри
 
     private void Awake()
     {
@@ -53,8 +54,18 @@ public class LoadingScreenController : MonoBehaviour
     {
         Debug.Log($"[LoadingScreenController] OnSceneLoaded: '{scene.name}' (очікую '{gameSceneName}')");
 
-        if (scene.name != gameSceneName) return; // ігноруємо саму сцену меню
+        if (scene.name != gameSceneName)
+        {
+            // Повернулись у меню (або будь-яку не-ігрову сцену) - скидаємо стан,
+            // щоб наступний Play чекав на НОВИЙ спавн, а не на застарілий.
+            sceneLoaded = false;
+            playerSpawned = false;
+            readyFired = false;
+            return;
+        }
 
+        // Перезапуск ігрової сцени (New Game через PhotonNetwork.LoadLevel):
+        // екран завантаження вже відкритий - вдруге тригер Ready не шлемо.
         sceneLoaded = true;
         TryFireReady();
     }
@@ -69,9 +80,9 @@ public class LoadingScreenController : MonoBehaviour
 
     private void TryFireReady()
     {
-        Debug.Log($"[LoadingScreenController] TryFireReady: sceneLoaded={sceneLoaded}, playerSpawned={playerSpawned}");
+        Debug.Log($"[LoadingScreenController] TryFireReady: sceneLoaded={sceneLoaded}, playerSpawned={playerSpawned}, readyFired={readyFired}");
 
-        if (sceneLoaded && playerSpawned)
+        if (sceneLoaded && playerSpawned && !readyFired)
         {
             if (jawAnimator == null)
             {
@@ -80,6 +91,7 @@ public class LoadingScreenController : MonoBehaviour
             }
 
             Debug.Log($"[LoadingScreenController] Викликаю тригер '{readyTrigger}'.");
+            readyFired = true;
             jawAnimator.SetTrigger(readyTrigger);
         }
     }
