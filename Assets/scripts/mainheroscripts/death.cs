@@ -5,17 +5,27 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Обробляє "смерть" гравця (напр. акула з'їла) БЕЗ переходу в іншу сцену:
+/// Обробляє "смерть" гравця (напр. акула з'їла, задихнувся) БЕЗ переходу в іншу сцену:
 /// - ховає візуальну модель гравця;
 /// - вимикає скрипти керування;
 /// - перемикає камеру гравця на окрему "камеру смерті";
 /// - за командою показує Game Over UI;
-/// - прив'язує кнопку рестарту до GameRestartManager зі сцени;
-/// - показує Game Over, коли острів ПОВНІСТЮ з'їдений акулою (незалежно
-///   від того, що саме стало причиною - природний останній укус чи
-///   форсоване поїдання після смерті гравця).
+/// - прив'язує кнопки рестарту/меню;
+/// - показує Game Over, коли острів ПОВНІСТЮ з'їдений акулою.
 ///
 /// Повісити на persona-об'єкт з PhotonView (у твоїй сцені - на "mainhero").
+///
+/// ВИПРАВЛЕННЯ КАМЕРИ СМЕРТІ:
+///  1. Якщо deathCamera лежить ВСЕРЕДИНІ об'єкта, який при смерті вимикається
+///     (Main Camera / playerModel / gameplayUI) - вона лишалась неактивною в
+///     ієрархії, хоча SetActive(true) викликався. Тепер перед вимкненням вона
+///     виноситься з-під таких батьків (світова позиція зберігається).
+///  2. Автопошук камер тепер не залежить від регістру, а для deathCamera
+///     враховує і назву батьківських об'єктів (якщо "deathcamera" - це порожній
+///     батько, а Camera сидить на дочірньому).
+///  3. Усі неактивні батьки deathCamera всередині гравця вмикаються.
+///  4. У Console друкується повний стан камери смерті та інших активних камер.
+///  5. На ЧУЖИХ копіях гравця камера смерті завжди вимкнена.
 /// </summary>
 [RequireComponent(typeof(PhotonView))]
 public class PlayerDeathHandler : MonoBehaviourPun
@@ -29,7 +39,7 @@ public class PlayerDeathHandler : MonoBehaviourPun
     [Tooltip("Звичайна ігрова камера. Якщо не задано - шукається дочірній об'єкт з ім'ям \"Main Camera\".")]
     public Camera playerCamera;
 
-    [Tooltip("Камера смерті. Якщо не задано - шукається дочірній об'єкт з ім'ям \"deathcamera\".")]
+    [Tooltip("Камера смерті. Якщо не задано - шукається камера, у назві якої (або її батька) є \"deathcamera\".")]
     public Camera deathCamera;
 
     [Header("Назви об'єктів для автопошуку камер (якщо поля вище порожні)")]
@@ -67,6 +77,10 @@ public class PlayerDeathHandler : MonoBehaviourPun
     private bool isDead;
     public bool IsDead => isDead;
 
+    // true, якщо deathCamera довелось винести в корінь сцени - тоді її треба
+    // знищити разом з гравцем (вона вже не його дочірній об'єкт).
+    private bool deathCameraDetachedToSceneRoot;
+
     void Awake()
     {
         ResolveCamerasIfMissing();
@@ -95,6 +109,9 @@ public class PlayerDeathHandler : MonoBehaviourPun
     {
         if (island != null)
             island.OnIslandDevoured -= HandleIslandDevoured;
+
+        if (deathCameraDetachedToSceneRoot && deathCamera != null)
+            Destroy(deathCamera.gameObject);
     }
 
     /// <summary>
@@ -117,20 +134,53 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
         Camera[] allCameras = GetComponentsInChildren<Camera>(true);
 
-        foreach (var cam in allCameras)
+        // Спершу камера смерті (за назвою САМОЇ камери або будь-якого її батька
+        // до кореня гравця), щоб вона не потрапила в playerCamera.
+        if (deathCamera == null)
         {
-            if (playerCamera == null && cam.gameObject.name == playerCameraObjectName)
-                playerCamera = cam;
+            foreach (var cam in allCameras)
+            {
+                if (NameOrParentNameContains(cam.transform, deathCameraObjectName))
+                {
+                    deathCamera = cam;
+                    break;
+                }
+            }
+        }
 
-            if (deathCamera == null && cam.gameObject.name == deathCameraObjectName)
-                deathCamera = cam;
+        if (playerCamera == null)
+        {
+            foreach (var cam in allCameras)
+            {
+                if (cam == deathCamera) continue;
+
+                if (string.Equals(cam.gameObject.name, playerCameraObjectName,
+                        System.StringComparison.OrdinalIgnoreCase))
+                {
+                    playerCamera = cam;
+                    break;
+                }
+            }
         }
 
         if (playerCamera == null)
             Debug.LogError($"[PlayerDeathHandler] Не знайдено playerCamera (шукав об'єкт \"{playerCameraObjectName}\") і поле в інспекторі порожнє!");
 
         if (deathCamera == null)
-            Debug.LogError($"[PlayerDeathHandler] Не знайдено deathCamera (шукав об'єкт \"{deathCameraObjectName}\") і поле в інспекторі порожнє!");
+            Debug.LogError($"[PlayerDeathHandler] Не знайдено deathCamera (шукав \"{deathCameraObjectName}\" у назві камери чи її батьків) і поле в інспекторі порожнє!");
+    }
+
+    private bool NameOrParentNameContains(Transform t, string part)
+    {
+        if (string.IsNullOrEmpty(part)) return false;
+
+        for (Transform p = t; p != null && p != transform; p = p.parent)
+        {
+            if (p.name.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -224,7 +274,13 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
     void Start()
     {
-        if (!photonView.IsMine) return;
+        if (!photonView.IsMine)
+        {
+            // Чужа копія гравця: її камера смерті на нашому екрані не потрібна ніколи.
+            if (deathCamera != null)
+                deathCamera.gameObject.SetActive(false);
+            return;
+        }
 
         if (deathCamera != null)
         {
@@ -257,6 +313,13 @@ public class PlayerDeathHandler : MonoBehaviourPun
         if (isDead) return;
         isDead = true;
 
+        // ВАЖЛИВО: камеру смерті рятуємо ДО того, як щось вимикається нижче.
+        if (photonView.IsMine)
+        {
+            ResolveCamerasIfMissing();
+            DetachDeathCameraFromDoomedObjects();
+        }
+
         foreach (var script in scriptsToDisable)
             if (script != null) script.enabled = false;
 
@@ -277,8 +340,6 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
         if (photonView.IsMine)
         {
-            ResolveCamerasIfMissing();
-
             Debug.Log($"[PlayerDeathHandler] RPC_Die: playerCamera={(playerCamera != null ? playerCamera.name : "NULL")}, deathCamera={(deathCamera != null ? deathCamera.name : "NULL")}");
 
             if (playerCamera != null)
@@ -289,16 +350,90 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
             if (deathCamera != null)
             {
+                // Вмикаємо всіх неактивних батьків камери смерті всередині гравця.
+                for (Transform p = deathCamera.transform.parent; p != null && p != transform; p = p.parent)
+                {
+                    if (!p.gameObject.activeSelf)
+                        p.gameObject.SetActive(true);
+                }
+
                 deathCamera.gameObject.SetActive(true);
                 deathCamera.enabled = true;
 
                 var deathListener = deathCamera.GetComponent<AudioListener>();
                 if (deathListener != null) deathListener.enabled = true;
+
+                LogDeathCameraState();
             }
             else
             {
                 Debug.LogError("[PlayerDeathHandler] deathCamera відсутня - камера смерті НЕ увімкнеться!");
             }
+        }
+    }
+
+    /// <summary>
+    /// Якщо камера смерті є дочірньою для об'єкта, що зараз буде вимкнено
+    /// (playerCamera, playerModel, елемент gameplayUI) - виносимо її з-під нього.
+    /// Світова позиція й поворот зберігаються.
+    /// </summary>
+    private void DetachDeathCameraFromDoomedObjects()
+    {
+        if (deathCamera == null) return;
+
+        Transform dc = deathCamera.transform;
+        string reason = null;
+
+        if (playerCamera != null && dc != playerCamera.transform && dc.IsChildOf(playerCamera.transform))
+            reason = "playerCamera";
+        else if (playerModel != null && dc != playerModel.transform && dc.IsChildOf(playerModel.transform))
+            reason = "playerModel";
+        else if (gameplayUI != null)
+        {
+            foreach (var ui in gameplayUI)
+            {
+                if (ui != null && dc != ui.transform && dc.IsChildOf(ui.transform))
+                {
+                    reason = "gameplayUI: " + ui.name;
+                    break;
+                }
+            }
+        }
+
+        if (reason == null) return;
+
+        // Якщо сам корінь гравця лежить під playerModel - прив'язка до кореня не допоможе,
+        // виносимо камеру в корінь сцени (і знищимо в OnDestroy).
+        bool rootIsDoomed = playerModel != null && transform.IsChildOf(playerModel.transform);
+
+        Debug.LogWarning($"[PlayerDeathHandler] deathCamera лежить під '{reason}', який вимикається при смерті - " +
+                         $"виношу її {(rootIsDoomed ? "в корінь сцени" : "під корінь гравця")}.");
+
+        dc.SetParent(rootIsDoomed ? null : transform, true);
+        deathCameraDetachedToSceneRoot = rootIsDoomed;
+    }
+
+    private void LogDeathCameraState()
+    {
+        if (deathCamera == null) return;
+
+        string chain = "";
+        for (Transform p = deathCamera.transform; p != null; p = p.parent)
+            chain += $"{p.name}[{(p.gameObject.activeSelf ? "on" : "OFF")}] < ";
+
+        Debug.Log($"[PlayerDeathHandler] deathCamera: activeInHierarchy={deathCamera.gameObject.activeInHierarchy}, " +
+                  $"enabled={deathCamera.enabled}, depth={deathCamera.depth}, cullingMask={deathCamera.cullingMask}, " +
+                  $"targetTexture={(deathCamera.targetTexture != null ? deathCamera.targetTexture.name : "null")}, " +
+                  $"targetDisplay={deathCamera.targetDisplay}. Ієрархія: {chain}");
+
+        if (!deathCamera.gameObject.activeInHierarchy)
+            Debug.LogError("[PlayerDeathHandler] deathCamera ВСЕ ЩЕ неактивна в ієрархії - дивись ланцюжок батьків вище (OFF).");
+
+        foreach (Camera cam in Camera.allCameras)
+        {
+            if (cam == deathCamera) continue;
+            Debug.Log($"[PlayerDeathHandler] Інша активна камера: '{cam.name}', depth={cam.depth}, " +
+                      $"targetTexture={(cam.targetTexture != null ? cam.targetTexture.name : "null")}");
         }
     }
 
