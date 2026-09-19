@@ -40,6 +40,12 @@ public class PalmSpawner : MonoBehaviour
     [Tooltip("Максимальний кут нахилу поверхні (градуси), на якому ще можна поставити пальму")]
     public float maxSlopeAngle = 25f;
 
+    [Header("Висота розміщення")]
+    [Tooltip("Зсув пальми по світовій осі Y відносно точки на поверхні. Мінус = пальма сидить глибше в землі (напр. -0.3). Плюс = вище.")]
+    public float verticalOffset = -0.3f;
+    [Tooltip("Саджати пальми лише не вище ніж стільки метрів над рівнем моря (щоб росли ближче до берега, а не на горі). 0 = без обмеження.")]
+    public float maxHeightAboveSea = 0f;
+
     [Header("Варіативність вигляду")]
     public Vector2 scaleRange = new Vector2(0.9f, 1.15f);
     [Tooltip("Чи нахиляти пальму під кут поверхні (природніше на схилах) чи завжди ставити рівно вгору")]
@@ -104,7 +110,10 @@ public class PalmSpawner : MonoBehaviour
                 continue;
             }
 
-            if (palm.transform.position.y < worldSeaLevel)
+            // Порівнюємо висоту ПОВЕРХНІ під пальмою (без verticalOffset), інакше
+            // занурена в землю пальма біля берега вважалась би затопленою і зникала.
+            float surfaceY = palm.transform.position.y - verticalOffset;
+            if (surfaceY < worldSeaLevel)
             {
                 Destroy(palm);
                 spawnedPalms.RemoveAt(i);
@@ -201,6 +210,9 @@ public class PalmSpawner : MonoBehaviour
 
             if (hit.point.y < island.seaLevel) continue; // потрапили під воду - точка не годиться
 
+            // Обмеження по висоті: лише нижні схили/узбережжя.
+            if (maxHeightAboveSea > 0f && hit.point.y - island.seaLevel > maxHeightAboveSea) continue;
+
             float slope = Vector3.Angle(hit.normal, Vector3.up);
             if (slope > maxSlopeAngle) continue;
 
@@ -232,7 +244,8 @@ public class PalmSpawner : MonoBehaviour
             ? Quaternion.FromToRotation(Vector3.up, normal) * Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
             : Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-        GameObject palm = Instantiate(prefab, position, rotation, island.transform);
+        Vector3 finalPosition = position + Vector3.up * verticalOffset;
+        GameObject palm = Instantiate(prefab, finalPosition, rotation, island.transform);
 
         float scale = Random.Range(scaleRange.x, scaleRange.y);
         palm.transform.localScale = Vector3.one * scale;
