@@ -4,29 +4,17 @@ using Photon.Realtime;
 using UnityEngine;
 using UnityEngine.Playables;
 
-// Цей скрипт підключає гру до Photon Cloud (мережа + голос одночасно),
-// спавнить гравця в спільній кімнаті і коректно респавнить його після
-// PhotonNetwork.LoadLevel (напр. коли гру перезапускають кнопкою "New Game").
+// Підключає гру до Photon Cloud, спавнить гравця в спільній кімнаті і коректно
+// респавнить його після PhotonNetwork.LoadLevel (кнопка "New Game").
 //
-// НАЛАШТУВАННЯ:
-// 1. Перенеси свій префаб гравця (mainhero_animated) у папку Assets/Resources/.
-// 2. Створи порожній GameObject "NetworkManager" у сцені, додай цей скрипт.
-// 3. У полі Player Prefab Name встав точну назву префабу з Resources.
-// 4. Створи порожні GameObject-точки спавну (напр. "SpawnPoint1", "SpawnPoint2")
-//    і перетягни їх у масив Spawn Points. Якщо масив порожній - спавн у (0,0,0).
-// 5. Переконайся, що сцена додана в File -> Build Settings -> Scenes In Build
-//    (PhotonNetwork.LoadLevel вимагає, щоб сцена мала build index).
+// ВАЖЛИВО: у сцені має бути ТІЛЬКИ ОДИН об'єкт з цим скриптом.
 //
-// ВАЖЛИВО: у сцені має бути ТІЛЬКИ ОДИН об'єкт з цим скриптом —
-// два NetworkManager викликають OnJoinedRoom двічі і спавнять двох персонажів.
-//
-// ПІДКЛЮЧЕННЯ (нове):
-//  - Підключення стартує через 1 кадр після Start(), коли всі інші скрипти
-//    (острів, пальми, акула) уже відпрацювали свої Start().
-//  - Спроба 1: протокол із PhotonServerSettings (зазвичай UDP).
-//    Якщо таймаут - спроба 2: TCP (UDP часто блокують VPN/фаєрвол/провайдер).
-//  - Якщо всі спроби невдалі - Offline Mode (одиночна гра), щоб екран
-//    завантаження не висів вічно.
+// ПІДКЛЮЧЕННЯ:
+//  - Старт через 1 кадр після Start(), коли всі інші Start() уже відпрацювали.
+//  - Якщо вже в кімнаті - спавн напряму (перезапуск сцени).
+//  - Якщо вже на Master Server (повернулись з меню) - одразу JoinOrCreateRoom.
+//  - Інакше: спроба 1 - протокол з PhotonServerSettings, спроба 2 - TCP,
+//    далі Offline Mode (одиночна гра).
 public class NetworkManager : MonoBehaviourPunCallbacks
 {
     [Header("Назва префабу гравця (файл має лежати в Assets/Resources/)")]
@@ -61,13 +49,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     private void Awake()
     {
-        // Без цього PhotonNetwork.LoadLevel перезавантажить сцену лише в того,
-        // хто його викликав (MasterClient) - усі інші лишаться в старій сцені.
         PhotonNetwork.AutomaticallySyncScene = true;
-
-        // Без цього, коли вікно Unity/гри втрачає фокус, Update/FixedUpdate
-        // зупиняються, Photon не диспатчить пакети і ловить TimeoutDisconnect
-        // (у логах це "AppOutOfFocus").
         Application.runInBackground = true;
     }
 
@@ -75,11 +57,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.InRoom)
         {
-            // Ми вже підключені й у кімнаті - це означає, що сцена щойно
-            // перезавантажилась через PhotonNetwork.LoadLevel (наприклад,
-            // після натискання "New Game"), а не перший запуск гри.
-            // OnConnectedToMaster/OnJoinedRoom вдруге НЕ викличуться (ми і так
-            // вже в кімнаті), тому спавнимось напряму тут.
             Debug.Log("Сцена перезавантажена - спавню гравця напряму.");
             SpawnPlayer();
             return;
@@ -90,13 +67,32 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     private IEnumerator ConnectRoutine(float delay)
     {
-        // Чекаємо кадр: до цього моменту всі Start() у сцені виконані
-        // (генерація острова, пальми, акула), тож головний потік не буде
-        // заблокований під час handshake з Photon.
         yield return null;
 
         if (delay > 0f)
             yield return new WaitForSecondsRealtime(delay);
+
+        // Чекаємо кінця перехідних станів (напр. Leaving після виходу з кімнати).
+        float waited = 0f;
+        while (PhotonNetwork.IsConnected && !PhotonNetwork.IsConnectedAndReady && waited < 10f)
+        {
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (PhotonNetwork.InRoom)
+        {
+            SpawnPlayer();
+            yield break;
+        }
+
+        // Повернулись з меню: клієнт уже на Master Server - нового connect не треба.
+        if (PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.Log("Вже підключений до Photon Master Server - одразу заходжу в кімнату.");
+            PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions(), TypedLobby.Default);
+            yield break;
+        }
 
         ConnectOnline();
     }
@@ -109,7 +105,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         Debug.Log($"Підключення до Photon... (спроба {connectAttempts}/{maxOnlineAttempts}, " +
                   $"протокол: {(useTcp ? "TCP" : "з PhotonServerSettings")})");
 
-        // Копія налаштувань - щоб не змінювати сам ассет PhotonServerSettings.
         AppSettings settings = new AppSettings();
         PhotonNetwork.PhotonServerSettings.AppSettings.CopyTo(settings);
 
@@ -120,12 +115,11 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
         if (!PhotonNetwork.ConnectUsingSettings(settings))
         {
-            Debug.LogError("PhotonNetwork.ConnectUsingSettings повернув false - перевір AppId у PhotonServerSettings.");
+            Debug.LogError("PhotonNetwork.ConnectUsingSettings повернув false - клієнт уже підключений/в перехідному стані або порожній AppId у PhotonServerSettings.");
             HandleConnectionFailed();
         }
     }
 
-    // Єдина точка, де вирішуємо: ще одна спроба, офлайн чи здатись.
     private void HandleConnectionFailed()
     {
         if (playerSpawned || goingOffline) return;
@@ -147,16 +141,25 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     private IEnumerator GoOfflineRoutine()
     {
-        // Чекаємо кадр, щоб клієнт Photon встиг повністю перейти у стан Disconnected.
         yield return null;
 
         if (playerSpawned || goingOffline) yield break;
         goingOffline = true;
 
-        Debug.LogWarning("Онлайн недоступний - запускаю Offline Mode (одиночна гра).");
+        // OfflineMode не можна вмикати, поки клієнт підключений - спершу відключаємось.
+        if (PhotonNetwork.IsConnected && !PhotonNetwork.OfflineMode)
+        {
+            PhotonNetwork.Disconnect();
 
-        // Увімкнення OfflineMode одразу викликає OnConnectedToMaster,
-        // а той - JoinOrCreateRoom -> OnJoinedRoom -> SpawnPlayer.
+            float waited = 0f;
+            while (PhotonNetwork.IsConnected && waited < 5f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
+        Debug.LogWarning("Онлайн недоступний - запускаю Offline Mode (одиночна гра).");
         PhotonNetwork.OfflineMode = true;
     }
 
@@ -174,10 +177,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     private void SpawnPlayer()
     {
-        // Захист від подвійного спавну ТІЛЬКИ в межах одного й того самого
-        // життя сцени: TagObject перевіряємо через Unity-cast, бо після
-        // PhotonNetwork.LoadLevel стара посилання-обгортка технічно не null
-        // на рівні C#, хоча сам GameObject уже знищений.
         GameObject existing = PhotonNetwork.LocalPlayer.TagObject as GameObject;
         if (existing != null)
         {
@@ -202,18 +201,11 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         PhotonNetwork.LocalPlayer.TagObject = player;
         playerSpawned = true;
 
-        // PhotonNetwork.Instantiate виконується локально для того клієнта,
-        // що спавниться - тому це саме той момент "гравець заспавнився",
-        // а не спавн чужих гравців по мережі.
         if (spawnCutscene != null)
-        {
             spawnCutscene.Play();
-        }
 
         if (LoadingScreenController.Instance != null)
-        {
             LoadingScreenController.Instance.OnPlayerSpawned();
-        }
     }
 
     public override void OnLeftRoom()
@@ -226,10 +218,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         Debug.LogWarning($"Відключено від Photon. Причина: {cause}");
         PhotonNetwork.LocalPlayer.TagObject = null;
 
-        // Свідоме відключення (LeaveRoom/Disconnect з коду) - не помилка.
         if (cause == DisconnectCause.DisconnectByClientLogic) return;
 
-        // Ретраї/офлайн лише поки гравець ще не в грі - розрив посеред гри тут не чіпаємо.
         HandleConnectionFailed();
     }
 
