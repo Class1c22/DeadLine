@@ -11298,7 +11298,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1754774856
 Transform:
   m_ObjectHideFlags: 0
@@ -11309,7 +11309,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 11.9, y: 0.1, z: -10.14}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 10, y: 10, z: 10}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1767184035}
@@ -12459,8 +12459,16 @@ PrefabInstance:
     m_TransformParent: {fileID: 1767184035}
     m_Modifications:
     - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_LocalScale.y
-      value: 50000
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_LocalPosition.x
@@ -12472,7 +12480,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.35122013
+      value: -10.8
       objectReference: {fileID: 0}
     - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_LocalRotation.w
@@ -12502,14 +12510,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 456984270608682067, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3073701891191019549, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_Name
       value: Plane
       objectReference: {fileID: 0}
     - target: {fileID: 3073701891191019549, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6004716257157982066, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: b3eb8eb31212ffe4a90d94856e07a39e, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
