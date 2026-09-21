@@ -43,18 +43,18 @@ Material:
     - _depth: 4
     - _depthColorScale: 4
     - _frequency: 1.5
-    - _height: 0.3
+    - _height: 0.2
     - _peak: 1.09
-    - _speed: 0.05
+    - _speed: 0.02
     - _speed_1: 1
-    - _speed_wave: 0.5
+    - _speed_wave: 1
     - _voronoiDistoreSpeed: 0.5
     m_Colors:
-    - _Color: {r: 0.18431373, g: 0.5647059, b: 0.76470596, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Color_1: {r: 0, g: 0.9893317, b: 1, a: 1}
-    - _basecolor: {r: 0.110137045, g: 0.7248967, b: 0.9339623, a: 1}
+    - _basecolor: {r: 0.010546438, g: 0.528962, b: 0.745283, a: 1}
     - _deep: {r: 0, g: 0, b: 0, a: 1}
-    - _direction: {r: 3.34, g: 3.1, b: -0.85, a: 0}
+    - _direction: {r: 3.34, g: 0, b: 0, a: 0}
     - _shallow: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
