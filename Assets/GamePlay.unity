@@ -1304,27 +1304,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7384029009703675993, guid: 58f1048973b976744852f2ed5584c1af, type: 3}
   m_PrefabInstance: {fileID: 3185970424935845084}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1144755726 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3073701891191019549, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
-  m_PrefabInstance: {fileID: 8748467025569573510}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1144755727
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1144755726}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fff07d22daf635d4bbfcfadf6eb6317b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RippleEffect
-  TextureSize: 512
-  ObjectsRT: {fileID: 8400000, guid: d5079af35e493874fafa0599ed8ec012, type: 2}
-  RippleShader: {fileID: 4800000, guid: 1d10f3c3f06453c44b131b38209d4f15, type: 3}
-  AddShader: {fileID: 4800000, guid: fef819d8f60df2f40b933d13ef8aa0e1, type: 3}
 --- !u!1 &1273853791 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 1b9ec6032d00c944d8fd0eca11452400, type: 3}
@@ -12529,10 +12508,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3073701891191019549, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1144755727}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
 --- !u!4 &8812917567633483591 stripped
 Transform:
