@@ -33,6 +33,9 @@ public class FishingLineController : MonoBehaviour
     [Tooltip("Шар суші/землі - гачок теж може \"приземлитись\" сюди (просто без риби, це вирішує FishingController)")]
     public LayerMask landLayer;
 
+    [Tooltip("Шар справжнього дна під водою (напр. окремий невидимий Plane \"under\"), на якому гачок фізично зупиняється, ПРОВалившись крізь воду. Додається лише до landableLayer гачка (щоб OnLanded спрацював), але НЕ впливає на прицільний raycast у FishingController - гравець не зможе навмисно цілитись прямо в дно.")]
+    public LayerMask seaFloorLayer;
+
     [Header("Матеріал лески")]
     [Tooltip("Матеріал для LineRenderer. Якщо не призначити - буде згенеровано найпростіший однотонний матеріал у Play Mode, щоб леска НЕ була фіолетовою (типовий колір Unity для відсутнього/несумісного шейдера).")]
     public Material lineMaterial;
@@ -44,6 +47,8 @@ public class FishingLineController : MonoBehaviour
     public float lineWidth = 0.008f;
     [Tooltip("Кількість ітерацій розв'язання обмежень довжини за кадр - більше = менш еластична, точніша мотузка")]
     [Range(1, 20)] public int constraintIterations = 10;
+    [Tooltip("Множник довжини лески відносно прямої відстані вудка-гачок. 1 = леска завжди туго натягнута точно по прямій (як зараз). Більше 1 = леска ФІЗИЧНО ДОВША за пряму відстань - буде більше провисати (сильніший, реалістичніший \"провіс\" замість натягнутої струни).")]
+    [Range(1f, 3f)] public float lineSlack = 1.15f;
     [Tooltip("Множник гравітації для провисання лески (не плутати з гравітацією гачка)")]
     public float lineGravity = 1f;
     [Range(0f, 0.5f)] public float lineDrag = 0.05f;
@@ -130,7 +135,7 @@ public class FishingLineController : MonoBehaviour
             Destroy(currentHook.gameObject);
 
         currentHook = Instantiate(hookPrefab, rodTip.position, Quaternion.identity);
-        currentHook.landableLayer = waterLayer | landLayer;
+        currentHook.landableLayer = waterLayer | landLayer | seaFloorLayer;
         currentHook.ResetHook();
         currentHook.OnLanded += HandleHookLanded;
 
@@ -192,7 +197,7 @@ public class FishingLineController : MonoBehaviour
             prevPoints[i] = points[i];
         }
 
-        segmentLength = Vector3.Distance(start, end) / (segmentCount - 1);
+        segmentLength = Vector3.Distance(start, end) * lineSlack / (segmentCount - 1);
     }
 
     private void FixedUpdate()
@@ -208,9 +213,11 @@ public class FishingLineController : MonoBehaviour
         Vector3 hookPos = currentHook.transform.position;
 
         // Поки гачок летить/тягнеться - довжина сегментів підлаштовується під поточну відстань,
-        // щоб мотузка не розтягувалась нескінченно і не "телепортувала" точки.
+        // помножену на lineSlack, щоб мотузка не розтягувалась нескінченно і не "телепортувала"
+        // точки, але при цьому фізично була ДОВШОЮ за пряму (lineSlack > 1), а не туго натягнутою
+        // струною - завдяки цьому вона більше провисає під lineGravity.
         float currentDist = Vector3.Distance(rodTip.position, hookPos);
-        segmentLength = currentDist / (segmentCount - 1);
+        segmentLength = (currentDist * lineSlack) / (segmentCount - 1);
 
         float dt2 = Time.fixedDeltaTime * Time.fixedDeltaTime;
 
