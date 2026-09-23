@@ -6,6 +6,14 @@ using UnityEngine;
 /// Просто сповіщає підписників, коли гачок фізично торкнувся будь-якої з поверхонь,
 /// вказаних у landableLayer (вода АБО суша - FishingLineController сам вирішує, яку саме
 /// маску сюди підставити перед кидком).
+///
+/// ДОДАНО: якщо поверхня, на яку сів гачок, має компонент WaterZone - гачок
+/// напряму викликає WaterZone.SpawnSplashAt(), програючи спленш-ефект точно в
+/// момент фізичного дотику. Це навмисно НЕ покладається на автоматичну перевірку
+/// швидкості падіння всередині WaterZone (яка орієнтована на звичайні Rigidbody-
+/// об'єкти, що вільно падають), бо гачок під час польоту часто рухається
+/// кінематично/по заданій траєкторії, і його rb.linearVelocity може не відображати
+/// реальну швидкість - через що автоматичний спленш міг і не спрацювати.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class FishingHook : MonoBehaviour
@@ -42,11 +50,21 @@ public class FishingHook : MonoBehaviour
     {
         if (alreadyLanded) return;
 
-        if (((1 << other.layer) & landableLayer.value) != 0)
+        if (((1 << other.layer) & landableLayer.value) == 0) return;
+
+        alreadyLanded = true;
+
+        // Якщо приземлились саме на воду (об'єкт з компонентом WaterZone) -
+        // граємо спленш напряму через сам WaterZone, використовуючи вже
+        // призначений у ньому splashPrefab. Не потрібно окремо тягнути
+        // посилання на префаб частинок у сам FishingHook.
+        WaterZone water = other.GetComponentInParent<WaterZone>();
+        if (water != null)
         {
-            alreadyLanded = true;
-            OnLanded?.Invoke();
+            water.SpawnSplashAt(transform.position);
         }
+
+        OnLanded?.Invoke();
     }
 
     /// <summary>Скидає прапорець - треба викликати перед повторним закиданням того самого гачка.</summary>

@@ -8,8 +8,14 @@ using UnityEngine;
 // так бар кисню з'являється/зникає саме коли КАМЕРА перетинає поверхню,
 // а не коли тіло торкнулось тригера.
 //
-// ДОДАНО: спленш-ефект частинками для БУДЬ-ЯКОГО об'єкта з Rigidbody
-// (гравець, риба, предмети з Pickupable тощо), який падає в воду.
+// СПЛЕНШ-ЕФЕКТ грається двома способами:
+// 1) Автоматично - для будь-якого об'єкта з Rigidbody, що падає в воду
+//    досить швидко (TrySpawnSplashFromRigidbody, перевіряє швидкість).
+// 2) Напряму - через публічний метод SpawnSplashAt(pos), який можуть
+//    викликати інші скрипти (напр. FishingHook), коли вони САМІ точно
+//    знають, що торкнулись води, і перевірка швидкості падіння їм не
+//    підходить (наприклад, гачок рухається кінематично по дузі, і
+//    rb.linearVelocity в нього не відображає реальну швидкість польоту).
 public class WaterZone : MonoBehaviour
 {
     private Collider waterCollider;
@@ -18,23 +24,40 @@ public class WaterZone : MonoBehaviour
     [Tooltip("Префаб ParticleSystem, що програється один раз у точці входу в воду")]
     [SerializeField] private ParticleSystem splashPrefab;
 
-    [Tooltip("Мінімальна швидкість падіння вниз (м/с), щоб з'явився спленш. " +
-             "Захищає від спрацювання, коли об'єкт просто повільно спливає/тоне.")]
+    [Tooltip("Мінімальна швидкість падіння вниз (м/с), щоб з'явився спленш при " +
+             "автоматичній перевірці через Rigidbody. НЕ впливає на спленш, " +
+             "викликаний напряму через SpawnSplashAt().")]
     [SerializeField] private float minFallSpeedForSplash = 1.5f;
 
-    [Tooltip("Кулдаун між спленшами для одного й того ж об'єкта (сек), щоб не спамило частинками")]
+    [Tooltip("Кулдаун між спленшами (сек). Спільний для всіх джерел спленшу цієї зони, " +
+             "щоб частинки/звук не спамили, коли кілька об'єктів входять у воду одночасно.")]
     [SerializeField] private float splashCooldown = 0.5f;
+
+    [Header("Звук спленшу")]
+    [Tooltip("Звук булькання/сплеску, що програється в точці входу в воду (напр. коли буйок падає у воду)")]
+    [SerializeField] private AudioClip splashSound;
+
+    [Tooltip("Гучність звуку сплеску")]
+    [SerializeField] private float splashVolume = 1f;
+
+    [Tooltip("Розкид висоти тону (pitch), щоб однакові сплески не звучали монотонно однаково")]
+    [SerializeField] private Vector2 splashPitchRange = new Vector2(0.9f, 1.1f);
+
+    private float lastSplashTime = -999f;
 
     void Awake()
     {
         waterCollider = GetComponent<Collider>();
     }
 
+    /// <summary>Y-координата поверхні води (верх колайдера зони).</summary>
+    public float SurfaceY => waterCollider != null ? waterCollider.bounds.max.y : transform.position.y;
+
     private void OnTriggerEnter(Collider other)
     {
         Debug.Log($"[WaterZone] OnTriggerEnter: {other.name}, tag = {other.tag}");
 
-        TrySpawnSplash(other);
+        TrySpawnSplashFromRigidbody(other);
 
         if (!other.CompareTag("Player"))
         {
@@ -65,10 +88,8 @@ public class WaterZone : MonoBehaviour
             return;
         }
 
-        float surfaceY = waterCollider != null ? waterCollider.bounds.max.y : transform.position.y;
-
-        Debug.Log($"[WaterZone] {other.name} у зоні води. Поверхня на Y = {surfaceY}");
-        breath.SetInWaterVolume(true, surfaceY);
+        Debug.Log($"[WaterZone] {other.name} у зоні води. Поверхня на Y = {SurfaceY}");
+        breath.SetInWaterVolume(true, SurfaceY);
     }
 
     private void OnTriggerExit(Collider other)
@@ -89,7 +110,7 @@ public class WaterZone : MonoBehaviour
     }
 
     // ---------------------------------------------------------------
-    // СПЛЕНШ-ЕФЕКТ
+    // СПЛЕНШ-ЕФЕКТ (автоматичний варіант, через фізичну швидкість)
     //
     // Спрацьовує для БУДЬ-ЯКОГО об'єкта з Rigidbody (не тільки гравця),
     // якщо той падає вниз досить швидко. Ефект суто косметичний і
@@ -100,9 +121,7 @@ public class WaterZone : MonoBehaviour
     // однаково, тож спленш з'явиться в потрібний момент і у гравця, і
     // у тих, хто на нього дивиться.
     // ---------------------------------------------------------------
-    private float lastSplashTime = -999f;
-
-    private void TrySpawnSplash(Collider other)
+    private void TrySpawnSplashFromRigidbody(Collider other)
     {
         if (splashPrefab == null) return;
 
@@ -114,18 +133,60 @@ public class WaterZone : MonoBehaviour
         // без фізики) - пропускаємо цю перевірку і рахуємо вхід у тригер сам по собі.
         if (rb != null && rb.linearVelocity.y > -minFallSpeedForSplash) return;
 
+        Vector3 pos = other.transform.position;
+        SpawnSplashInternal(new Vector3(pos.x, SurfaceY, pos.z));
+    }
+
+    /// <summary>
+    /// ПУБЛІЧНИЙ метод для прямого виклику з інших скриптів (напр. FishingHook),
+    /// коли вони самі точно знають, що торкнулись саме цієї води, і перевірка
+    /// швидкості падіння через Rigidbody їм не підходить (кінематичний рух,
+    /// рух по скрипту тощо). worldPos - позиція об'єкта в момент дотику;
+    /// Y автоматично підміняється на висоту поверхні (SurfaceY), тож можна
+    /// передавати позицію самого об'єкта як є.
+    /// </summary>
+    public void SpawnSplashAt(Vector3 worldPos)
+    {
+        SpawnSplashInternal(new Vector3(worldPos.x, SurfaceY, worldPos.z));
+    }
+
+    private void SpawnSplashInternal(Vector3 splashPos)
+    {
+        // Якщо не призначено ні партикл, ні звук - робити нічого, навіть кулдаун не чіпаємо.
+        if (splashPrefab == null && splashSound == null) return;
         if (Time.time - lastSplashTime < splashCooldown) return;
         lastSplashTime = Time.time;
 
-        float surfaceY = waterCollider != null ? waterCollider.bounds.max.y : transform.position.y;
+        if (splashPrefab != null)
+        {
+            ParticleSystem fx = Instantiate(splashPrefab, splashPos, Quaternion.identity);
+            Destroy(fx.gameObject, 0.5f);
+        }
 
-        // Точка спленшу: XZ - де об'єкт увійшов у воду, Y - рівно на поверхні
-        Vector3 pos = other.transform.position;
-        Vector3 splashPos = new Vector3(pos.x, surfaceY, pos.z);
+        PlaySplashSound(splashPos);
 
-        ParticleSystem fx = Instantiate(splashPrefab, splashPos, Quaternion.identity);
-        Destroy(fx.gameObject, 0.5f);
+        Debug.Log($"[WaterZone] Спленш у точці {splashPos}");
+    }
 
-        Debug.Log($"[WaterZone] Спленш для {other.name} у точці {splashPos}");
+    private void PlaySplashSound(Vector3 splashPos)
+    {
+        if (splashSound == null) return;
+
+        // AudioSource.PlayClipAtPoint сам створює тимчасовий GameObject зі своїм
+        // AudioSource, програє звук і сам себе знищує - зручно для одноразових
+        // звуків типу сплеску, не треба тримати AudioSource на WaterZone.
+        // Гучність і pitch тут задати напряму не можна (PlayClipAtPoint не має
+        // параметра pitch), тому для розкиду тону створюємо тимчасовий об'єкт вручну.
+        GameObject tempAudio = new GameObject("SplashSound_Temp");
+        tempAudio.transform.position = splashPos;
+
+        AudioSource source = tempAudio.AddComponent<AudioSource>();
+        source.clip = splashSound;
+        source.volume = splashVolume;
+        source.pitch = Random.Range(splashPitchRange.x, splashPitchRange.y);
+        source.spatialBlend = 1f; // 3D-звук - гучність залежить від відстані до слухача
+        source.Play();
+
+        Destroy(tempAudio, splashSound.length / Mathf.Max(source.pitch, 0.01f));
     }
 }
