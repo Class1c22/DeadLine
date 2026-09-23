@@ -4563,11 +4563,15 @@ MonoBehaviour:
   landLayer:
     serializedVersion: 2
     m_Bits: 128
+  seaFloorLayer:
+    serializedVersion: 2
+    m_Bits: 512
   lineMaterial: {fileID: 2100000, guid: 073b1ee561def20429e655b5c8893ad4, type: 2}
   fallbackLineColor: {r: 0.2264151, g: 0.2264151, b: 0.2264151, a: 1}
   segmentCount: 16
   lineWidth: 0.01
   constraintIterations: 10
+  lineSlack: 1
   lineGravity: 1
   lineDrag: 0.05
 --- !u!1 &4576314277872633523
@@ -7977,8 +7981,9 @@ MonoBehaviour:
   castLandingTimeout: 3
   castThrowTriggerName: ThrowHook
   catchScreenAnimator: {fileID: 3943192656442272461}
-  catchScreenTriggerName: Catch
-  catchScreenAnimDelay: 1
+  catchScreenClipStateName: fishcatch
+  catchScreenIdleStateName: New State
+  catchScreenAnimDelay: 0.8
   biteWaitMin: 2
   biteWaitMax: 5
   biteTriggerName: Bite
