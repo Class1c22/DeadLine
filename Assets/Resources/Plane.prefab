@@ -127,6 +127,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c43f59dca95007640ae380e63efa64cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaterZone
+  splashPrefab: {fileID: 0}
+  minFallSpeedForSplash: 1.5
+  splashCooldown: 0.5
+  splashSound: {fileID: 8300000, guid: 8c8cedc43d9b2d043bb6e4736b6e63e2, type: 3}
+  splashVolume: 1
+  splashPitchRange: {x: 0.9, y: 1.1}
 --- !u!64 &943030607755703455
 MeshCollider:
   m_ObjectHideFlags: 0
