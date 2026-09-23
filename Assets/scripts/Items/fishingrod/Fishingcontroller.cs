@@ -15,9 +15,13 @@ using UnityEngine;
 ///    гравець будь-якої миті може клікнути ПКМ ЩЕ РАЗ, щоб СКАСУВАТИ закидання - леска
 ///    змотається назад без риби, і вудка одразу повернеться в Idle.
 /// 3a. Якщо гачок приземлився У ВОДІ - через випадковий час (biteWaitMin..biteWaitMax)
-///     риба "клює" - відкривається вікно (strikeWindow, 3 сек), протягом якого на вудці
-///     ПОВТОРЮЄТЬСЯ (лупиться) анімація клювання (риба смикається), поки гравець не
-///     клікне ПКМ, щоб підсікти. Автоматично риба НЕ ловиться.
+///     спершу грається UI-анімація catchscreen (catchScreenAnimator, тригер
+///     catchScreenTriggerName) і триває catchScreenAnimDelay секунд. Увесь цей час
+///     стан ЛИШАЄТЬСЯ WaitingForBite, тому клік ПКМ у цей момент лише скасовує
+///     закидання (як і в п.2), а НЕ підсікає рибу. Тільки ПІСЛЯ цієї затримки риба
+///     фактично "клює" - відкривається вікно (strikeWindow, 3 сек), протягом якого
+///     на вудці ПОВТОРЮЄТЬСЯ (лупиться) анімація клювання (риба смикається), поки
+///     гравець не клікне ПКМ, щоб підсікти. Автоматично риба НЕ ловиться.
 /// 3b. Якщо гачок приземлився НА СУШІ - риба ніколи не клює. Гачок просто лежить,
 ///     гравець може в будь-який момент клікнути ПКМ, щоб змотати його назад (Cancel).
 /// 4. Якщо гравець встиг клікнути вчасно (тільки у воді) - грається анімація
@@ -36,6 +40,7 @@ public class FishingController : MonoBehaviour
         Idle,             // вудка вільна, можна закидати
         Casting,          // гачок фізично летить до цілі (можна скасувати кліком)
         WaitingForBite,   // гачок приземлився, чекаємо клювання (тільки у воді) або просто лежить (на суші) - можна скасувати кліком
+        BiteAnimation,    // риба клюнула, грається UI-анімація (catchscreen) - клік тут НЕ скасовує закидання, а запам'ятовується як завчасна підсічка
         WaitingForStrike, // риба клюнула - клік підсікає рибу
         Reeling           // йде анімація витягування + змотування лески (клік ігнорується)
     }
@@ -73,6 +78,16 @@ public class FishingController : MonoBehaviour
     [Tooltip("Назва Trigger-параметра в rodAnimator, що грає в момент закидання гачка. Пусто = без анімації.")]
     public string castThrowTriggerName = "ThrowHook";
 
+    [Header("UI-анімація клювання (catchscreen)")]
+    [Tooltip("Аніматор UI-екрану клювання (catchscreen/anim), що грає ПЕРЕД тим, як риба фактично клюне")]
+    public Animator catchScreenAnimator;
+    [Tooltip("Назва СТАНУ (не тригера!) в catchScreenAnimator, який відповідає за саму анімацію клювання (напр. \"fishcatch\"). Запускається через Play(), тому спрацює навіть якщо в контролері немає зворотного переходу.")]
+    public string catchScreenClipStateName = "fishcatch";
+    [Tooltip("Назва стану idle в catchScreenAnimator (напр. \"New State\"), у який аніматор примусово повертається після затримки - щоб наступного разу анімацію можна було так само примусово перезапустити.")]
+    public string catchScreenIdleStateName = "New State";
+    [Tooltip("Скільки секунд чекати (граючи UI-анімацію), перш ніж риба фактично клюне і відкриється вікно підсічки")]
+    public float catchScreenAnimDelay = 1f;
+
     [Header("Клювання (тільки якщо гачок у воді)")]
     [Tooltip("Мінімальний і максимальний час очікування клювання (секунди)")]
     public float biteWaitMin = 2f;
@@ -102,6 +117,7 @@ public class FishingController : MonoBehaviour
     private Coroutine biteLoopRoutine;   // корутина повторення bite-анімації
     private bool lastCastWasWater;       // чи ціль останнього закидання - вода (визначає, чи можлива поклівка)
     private bool wasHoldingRod;          // чи вудка була в руках у ПОПЕРЕДНЬОМУ кадрі (щоб зловити момент, коли її прибрали)
+    private bool earlyStrikeRequested;   // гравець клікнув ПКМ ПІД ЧАС BiteAnimation - зарахувати улов одразу, як анімація дограє
 
     void Update()
     {
@@ -130,6 +146,14 @@ public class FishingController : MonoBehaviour
             case FishingState.WaitingForBite:
                 // Гравець сам передумав (або закинув на сушу, де риба не клює) - скасовуємо
                 CancelFishing();
+                break;
+
+            case FishingState.BiteAnimation:
+                // Риба вже клюнула, грається UI-анімація - гравець клікнув ВЧАСНО.
+                // НЕ скасовуємо закидання і не ловимо рибу прямо зараз (анімація ще
+                // не дограла) - лише запам'ятовуємо, щоб зарахувати улов одразу
+                // після завершення анімації (див. AfterLandingRoutine).
+                earlyStrikeRequested = true;
                 break;
 
             case FishingState.WaitingForStrike:
@@ -182,7 +206,7 @@ public class FishingController : MonoBehaviour
         }
     }
 
-    /// <summary>Гравець сам скасовує закидання (або закинув на сушу, де ловити нема на що).</summary>
+    /// <summary>Гравець сам скасовує закидання (або закинув на сушу, де ловити нема на що, або ще триває UI-анімація клювання).</summary>
     private void CancelFishing()
     {
         if (activeRoutine != null)
@@ -233,7 +257,11 @@ public class FishingController : MonoBehaviour
         activeRoutine = StartCoroutine(AfterLandingRoutine());
     }
 
-    /// <summary>Гачок приземлився. У воді - чекаємо клювання. На суші - просто лежимо, чекаємо, поки гравець скасує.</summary>
+    /// <summary>
+    /// Гачок приземлився. У воді - чекаємо biteWait, тоді грається UI-анімація
+    /// catchscreen і ЛИШЕ ПІСЛЯ неї риба фактично "клює" (відкривається вікно
+    /// підсічки). На суші - просто лежимо, чекаємо, поки гравець скасує.
+    /// </summary>
     private IEnumerator AfterLandingRoutine()
     {
         state = FishingState.WaitingForBite;
@@ -248,7 +276,43 @@ public class FishingController : MonoBehaviour
         float waitTime = Random.Range(biteWaitMin, biteWaitMax);
         yield return new WaitForSeconds(waitTime);
 
-        // Риба клюнула - відкриваємо вікно на підсічку
+        // --- Крок 1: спершу граємо UI-анімацію, ДО того як риба фактично клюнула.
+        // Стан переходить у BiteAnimation: клік ПКМ зараз НЕ скасовує закидання
+        // (обробляється в Update -> earlyStrikeRequested = true), а лише
+        // запам'ятовується, щоб одразу зарахувати улов, коли анімація дограє.
+        //
+        // Використовуємо Animator.Play(..., 0, 0f) замість SetTrigger - це ПРИМУСОВО
+        // перезапускає клип з самого початку, навіть якщо аніматор досі "застряг"
+        // у стані fishcatch з попереднього улову (тобто навіть без зворотного
+        // переходу fishcatch -> idle у самому контролері). SetTrigger тут не
+        // спрацював би вдруге, бо з поточного стану може не бути валідного переходу.
+        Debug.Log("[FishingController] Йде анімація клювання...");
+
+        state = FishingState.BiteAnimation;
+        earlyStrikeRequested = false;
+
+        if (catchScreenAnimator != null && !string.IsNullOrEmpty(catchScreenClipStateName))
+            catchScreenAnimator.Play(catchScreenClipStateName, 0, 0f);
+
+        yield return new WaitForSeconds(catchScreenAnimDelay);
+
+        // Повертаємо UI-аніматор в idle-стан, щоб наступного разу Play() знову
+        // "стартанув" клип з нуля (а не просто лишався в тому ж кадрі).
+        if (catchScreenAnimator != null && !string.IsNullOrEmpty(catchScreenIdleStateName))
+            catchScreenAnimator.Play(catchScreenIdleStateName, 0, 0f);
+
+        // Якщо гравець уже клікнув під час анімації - зараховуємо улов одразу,
+        // не чекаючи ще одного кліку у вікні підсічки.
+        if (earlyStrikeRequested)
+        {
+            Debug.Log("[FishingController] Клікнув вчасно під час анімації - риба впіймана!");
+            state = FishingState.Reeling;
+            activeRoutine = null;
+            StartCoroutine(ReelInRoutine());
+            yield break;
+        }
+
+        // --- Крок 2: тепер риба реально клюнула - відкриваємо вікно підсічки.
         state = FishingState.WaitingForStrike;
         Debug.Log("[FishingController] Клює! Клікни ще раз (ПКМ), щоб підсікти!");
 
@@ -361,6 +425,7 @@ public class FishingController : MonoBehaviour
         if (fishingLine != null)
             fishingLine.CancelLine();
 
+        earlyStrikeRequested = false;
         ReturnToIdle();
     }
 
