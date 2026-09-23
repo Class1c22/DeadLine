@@ -1308,6 +1308,9 @@ MonoBehaviour:
   splashPrefab: {fileID: 1340815882}
   minFallSpeedForSplash: 1.5
   splashCooldown: 0.5
+  splashSound: {fileID: 0}
+  splashVolume: 1
+  splashPitchRange: {x: 0.9, y: 1.1}
 --- !u!1 &1025469150
 GameObject:
   m_ObjectHideFlags: 0
@@ -1550,8 +1553,8 @@ Transform:
   m_GameObject: {fileID: 1340815879}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.017, y: -17.2, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -0.017, y: 3.89, z: -0}
+  m_LocalScale: {x: 1.12, y: 1.12, z: 1.12}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1025469151}
@@ -1890,7 +1893,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.1
+      scalar: 0.06
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -1943,7 +1946,7 @@ ParticleSystem:
     startSizeY:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.3
+      scalar: 0.32
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -1996,7 +1999,7 @@ ParticleSystem:
     startSizeZ:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.1
+      scalar: 0.18
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -7519,6 +7522,18 @@ PrefabInstance:
     - target: {fileID: 3073701891191019549, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5830560835167468776, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: splashSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c8cedc43d9b2d043bb6e4736b6e63e2, type: 3}
+    - target: {fileID: 5830560835167468776, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: splashPrefab
+      value: 
+      objectReference: {fileID: 1340815882}
+    - target: {fileID: 5830560835167468776, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
+      propertyPath: splashVolume
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 6004716257157982066, guid: 0217a074b56626d4ea294b649ceb8661, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
