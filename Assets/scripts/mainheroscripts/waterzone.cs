@@ -9,13 +9,14 @@ using UnityEngine;
 // а не коли тіло торкнулось тригера.
 //
 // СПЛЕНШ-ЕФЕКТ грається двома способами:
-// 1) Автоматично - для будь-якого об'єкта з Rigidbody, що падає в воду
-//    досить швидко (TrySpawnSplashFromRigidbody, перевіряє швидкість).
+// 1) Автоматично - для БУДЬ-ЯКОГО об'єкта, що зайшов у тригер води
+//    (TrySpawnSplashFromRigidbody). Швидкість падіння більше НЕ перевіряється -
+//    сплеск/звук грається завжди, незалежно від того, як швидко об'єкт падав
+//    і чи є в нього Rigidbody взагалі.
 // 2) Напряму - через публічний метод SpawnSplashAt(pos), який можуть
 //    викликати інші скрипти (напр. FishingHook), коли вони САМІ точно
-//    знають, що торкнулись води, і перевірка швидкості падіння їм не
-//    підходить (наприклад, гачок рухається кінематично по дузі, і
-//    rb.linearVelocity в нього не відображає реальну швидкість польоту).
+//    знають, що торкнулись води (напр. гачок рухається кінематично по дузі,
+//    і rb.linearVelocity в нього не відображає реальну швидкість польоту).
 public class WaterZone : MonoBehaviour
 {
     private Collider waterCollider;
@@ -23,11 +24,6 @@ public class WaterZone : MonoBehaviour
     [Header("Спленш-ефект")]
     [Tooltip("Префаб ParticleSystem, що програється один раз у точці входу в воду")]
     [SerializeField] private ParticleSystem splashPrefab;
-
-    [Tooltip("Мінімальна швидкість падіння вниз (м/с), щоб з'явився спленш при " +
-             "автоматичній перевірці через Rigidbody. НЕ впливає на спленш, " +
-             "викликаний напряму через SpawnSplashAt().")]
-    [SerializeField] private float minFallSpeedForSplash = 1.5f;
 
     [Tooltip("Кулдаун між спленшами (сек). Спільний для всіх джерел спленшу цієї зони, " +
              "щоб частинки/звук не спамили, коли кілька об'єктів входять у воду одночасно.")]
@@ -110,12 +106,12 @@ public class WaterZone : MonoBehaviour
     }
 
     // ---------------------------------------------------------------
-    // СПЛЕНШ-ЕФЕКТ (автоматичний варіант, через фізичну швидкість)
+    // СПЛЕНШ-ЕФЕКТ (автоматичний варіант)
     //
-    // Спрацьовує для БУДЬ-ЯКОГО об'єкта з Rigidbody (не тільки гравця),
-    // якщо той падає вниз досить швидко. Ефект суто косметичний і
-    // програється ЛОКАЛЬНО на кожному клієнті (Instantiate, не
-    // PhotonNetwork.Instantiate) - це нормальна практика для частинок:
+    // Спрацьовує для БУДЬ-ЯКОГО об'єкта (не тільки гравця), що зайшов
+    // у тригер води - без перевірки швидкості падіння. Ефект суто
+    // косметичний і програється ЛОКАЛЬНО на кожному клієнті (Instantiate,
+    // не PhotonNetwork.Instantiate) - це нормальна практика для частинок:
     // мережевий трафік на них не витрачається, а фізика синхронізованого
     // об'єкта у Photon все одно виконується на кожному клієнті приблизно
     // однаково, тож спленш з'явиться в потрібний момент і у гравця, і
@@ -123,15 +119,11 @@ public class WaterZone : MonoBehaviour
     // ---------------------------------------------------------------
     private void TrySpawnSplashFromRigidbody(Collider other)
     {
-        if (splashPrefab == null) return;
-
-        Rigidbody rb = other.attachedRigidbody;
-
-        // Якщо є Rigidbody - перевіряємо, що об'єкт саме падає вниз досить швидко
-        // (захист від спленшу при повільному спливанні/зависанні у воді).
-        // Якщо Rigidbody немає (напр. буй, що рухається кінематично/скриптом,
-        // без фізики) - пропускаємо цю перевірку і рахуємо вхід у тригер сам по собі.
-        if (rb != null && rb.linearVelocity.y > -minFallSpeedForSplash) return;
+        if (splashPrefab == null && splashSound == null)
+        {
+            Debug.Log("[WaterZone] TrySpawnSplashFromRigidbody: і splashPrefab, і splashSound не призначені - виходжу");
+            return;
+        }
 
         Vector3 pos = other.transform.position;
         SpawnSplashInternal(new Vector3(pos.x, SurfaceY, pos.z));
@@ -139,11 +131,9 @@ public class WaterZone : MonoBehaviour
 
     /// <summary>
     /// ПУБЛІЧНИЙ метод для прямого виклику з інших скриптів (напр. FishingHook),
-    /// коли вони самі точно знають, що торкнулись саме цієї води, і перевірка
-    /// швидкості падіння через Rigidbody їм не підходить (кінематичний рух,
-    /// рух по скрипту тощо). worldPos - позиція об'єкта в момент дотику;
-    /// Y автоматично підміняється на висоту поверхні (SurfaceY), тож можна
-    /// передавати позицію самого об'єкта як є.
+    /// коли вони самі точно знають, що торкнулись саме цієї води. worldPos -
+    /// позиція об'єкта в момент дотику; Y автоматично підміняється на висоту
+    /// поверхні (SurfaceY), тож можна передавати позицію самого об'єкта як є.
     /// </summary>
     public void SpawnSplashAt(Vector3 worldPos)
     {
@@ -152,15 +142,27 @@ public class WaterZone : MonoBehaviour
 
     private void SpawnSplashInternal(Vector3 splashPos)
     {
+        Debug.Log($"[WaterZone] SpawnSplashInternal викликано в точці {splashPos}. splashPrefab={(splashPrefab != null)}, splashSound={(splashSound != null)}");
+
         // Якщо не призначено ні партикл, ні звук - робити нічого, навіть кулдаун не чіпаємо.
-        if (splashPrefab == null && splashSound == null) return;
-        if (Time.time - lastSplashTime < splashCooldown) return;
+        if (splashPrefab == null && splashSound == null)
+        {
+            Debug.Log("[WaterZone] SpawnSplashInternal: і splashPrefab, і splashSound не призначені в інспекторі - виходжу");
+            return;
+        }
+
+        if (Time.time - lastSplashTime < splashCooldown)
+        {
+            Debug.Log($"[WaterZone] SpawnSplashInternal: спрацював кулдаун ({Time.time - lastSplashTime:F2}с < {splashCooldown}с) - звук/спленш НЕ програється");
+            return;
+        }
         lastSplashTime = Time.time;
 
         if (splashPrefab != null)
         {
             ParticleSystem fx = Instantiate(splashPrefab, splashPos, Quaternion.identity);
             Destroy(fx.gameObject, 0.5f);
+            Debug.Log("[WaterZone] Партикл спленшу заспавнено");
         }
 
         PlaySplashSound(splashPos);
@@ -170,7 +172,13 @@ public class WaterZone : MonoBehaviour
 
     private void PlaySplashSound(Vector3 splashPos)
     {
-        if (splashSound == null) return;
+        if (splashSound == null)
+        {
+            Debug.Log("[WaterZone] PlaySplashSound: splashSound не призначений в інспекторі - звук не грає");
+            return;
+        }
+
+        Debug.Log($"[WaterZone] PlaySplashSound: створюю AudioSource для кліпу '{splashSound.name}', volume={splashVolume}");
 
         // AudioSource.PlayClipAtPoint сам створює тимчасовий GameObject зі своїм
         // AudioSource, програє звук і сам себе знищує - зручно для одноразових
@@ -186,6 +194,8 @@ public class WaterZone : MonoBehaviour
         source.pitch = Random.Range(splashPitchRange.x, splashPitchRange.y);
         source.spatialBlend = 1f; // 3D-звук - гучність залежить від відстані до слухача
         source.Play();
+
+        Debug.Log($"[WaterZone] PlaySplashSound: source.Play() викликано, isPlaying={source.isPlaying}, pitch={source.pitch}");
 
         Destroy(tempAudio, splashSound.length / Mathf.Max(source.pitch, 0.01f));
     }
