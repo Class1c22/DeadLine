@@ -15,9 +15,21 @@ using System.Collections.Generic;
 // анімації (Bite/Eat/EatFish) - через Photon Animator View або явний RPC
 // (див. TODO нижче), інакше на екранах гравців акула або не рухається,
 // або в кожного пливе по-своєму й кусає в різний час.
+//
+// ЗВУКИ: укус острова та поїдання риби відбуваються лише на MasterClient
+// (корутини BiteRoutine/EatFishRoutine), тому їхні звуки розсилаються всім
+// через RPC_PlaySound (RpcTarget.All). Звуки лайка/дизлайка грають у
+// ShowLikeMaterial()/ShowDislikeEffect(), які вже викликаються з
+// RPC_AddProgress(RpcTarget.All) - тому окремий RPC для них не потрібен.
 [RequireComponent(typeof(Animator), typeof(PhotonView))]
 public class SharkController : MonoBehaviourPun
 {
+    private enum SharkSound
+    {
+        Bite = 0,
+        EatFish = 1
+    }
+
     [Header("Патрулювання (коло навколо порожнього об'єкта)")]
     public Transform orbitCenter;
     public float patrolRadius = 25f;
@@ -86,6 +98,26 @@ public class SharkController : MonoBehaviourPun
     [Tooltip("Через скільки секунд знищити заспавнений об'єкт ефекту дизлайка.")]
     public float dislikeEffectLifetime = 2.5f;
 
+    [Header("Звуки")]
+    [Tooltip("AudioSource, через який граються всі звуки акули. Якщо не задано - береться AudioSource з цього ж об'єкта. Для звуку 'з акули' постав Spatial Blend = 1 (3D), для однакової гучності всюди - 0 (2D). Play On Awake вимкни.")]
+    public AudioSource audioSource;
+
+    [Tooltip("Звук укусу острова. Грається в момент ВЛУЧАННЯ укусу (коли острів фактично деформується) - синхронно на всіх клієнтах.")]
+    public AudioClip biteSound;
+    [Range(0f, 1f)] public float biteVolume = 1f;
+
+    [Tooltip("Звук поїдання риби в морі. Грається разом із тригером EatFish - синхронно на всіх клієнтах.")]
+    public AudioClip eatFishSound;
+    [Range(0f, 1f)] public float eatFishVolume = 1f;
+
+    [Tooltip("Звук, коли акулі СПОДОБАЛАСЬ риба (разом із сердечками).")]
+    public AudioClip likeSound;
+    [Range(0f, 1f)] public float likeVolume = 1f;
+
+    [Tooltip("Звук, коли акулі НЕ сподобалась риба (разом із гнівними рисками).")]
+    public AudioClip dislikeSound;
+    [Range(0f, 1f)] public float dislikeVolume = 1f;
+
     private Material defaultMaterial;
     private Coroutine likeMaterialRoutine;
 
@@ -108,6 +140,9 @@ public class SharkController : MonoBehaviourPun
     {
         animator = GetComponent<Animator>();
         animator.applyRootMotion = false;
+
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
 
         if (orbitCenter == null)
             Debug.LogWarning("[SharkController] Orbit Center не задано - акула не буде патрулювати.");
@@ -219,11 +254,57 @@ public class SharkController : MonoBehaviourPun
             ShowDislikeEffect();
     }
 
+    // ------------------------------------------------------------------
+    // ЗВУКИ
+    // ------------------------------------------------------------------
+
+    /// <summary>Грає один звук локально (на цьому клієнті). Нічого не робить, якщо AudioSource або AudioClip не призначені.</summary>
+    private void PlayClip(AudioClip clip, float volume)
+    {
+        if (audioSource == null || clip == null) return;
+
+        audioSource.PlayOneShot(clip, volume);
+    }
+
+    /// <summary>
+    /// Грає звук укусу/поїдання риби на ВСІХ клієнтах. Викликається лише з
+    /// корутин, що виконуються на MasterClient (BiteRoutine/EatFishRoutine),
+    /// тому без RPC інші гравці цих звуків просто не почули б. Якщо ми не в
+    /// кімнаті (напр. одиночний тест сцени) - граємо тільки локально.
+    /// </summary>
+    private void PlaySoundForAll(SharkSound sound)
+    {
+        if (PhotonNetwork.InRoom && photonView != null)
+            photonView.RPC(nameof(RPC_PlaySound), RpcTarget.All, (int)sound);
+        else
+            PlaySoundLocal(sound);
+    }
+
+    [PunRPC]
+    private void RPC_PlaySound(int soundId)
+    {
+        PlaySoundLocal((SharkSound)soundId);
+    }
+
+    private void PlaySoundLocal(SharkSound sound)
+    {
+        switch (sound)
+        {
+            case SharkSound.Bite:
+                PlayClip(biteSound, biteVolume);
+                break;
+
+            case SharkSound.EatFish:
+                PlayClip(eatFishSound, eatFishVolume);
+                break;
+        }
+    }
+
     /// <summary>
     /// Тимчасово перемикає матеріал акули на likeMaterial, а через
-    /// likeMaterialDuration повертає стандартний, і спавнить VFX сердечок.
-    /// Викликається з RPC_AddProgress, тобто виконується ОДНАКОВО на всіх
-    /// клієнтах - додаткового RPC для самого ефекту не потрібно.
+    /// likeMaterialDuration повертає стандартний, спавнить VFX сердечок і
+    /// грає звук лайка. Викликається з RPC_AddProgress, тобто виконується
+    /// ОДНАКОВО на всіх клієнтах - додаткового RPC для самого ефекту не потрібно.
     /// </summary>
     private void ShowLikeMaterial()
     {
@@ -236,6 +317,7 @@ public class SharkController : MonoBehaviourPun
         }
 
         SpawnLikeHearts();
+        PlayClip(likeSound, likeVolume);
     }
 
     private IEnumerator LikeMaterialRoutine()
@@ -271,12 +353,14 @@ public class SharkController : MonoBehaviourPun
     /// <summary>
     /// Викликається з RPC_AddProgress, коли liked == false (рибу зараховано
     /// як НЕ улюблену). На відміну від лайка, матеріал акули тут НЕ міняється -
-    /// лише спавниться VFX "гнівних рисок". Так само локально на кожному
-    /// клієнті, синхронно, бо сам RPC_AddProgress вже прийшов з RpcTarget.All.
+    /// лише спавниться VFX "гнівних рисок" і грає звук дизлайка. Так само
+    /// локально на кожному клієнті, синхронно, бо сам RPC_AddProgress вже
+    /// прийшов з RpcTarget.All.
     /// </summary>
     private void ShowDislikeEffect()
     {
         SpawnDislikeEffect();
+        PlayClip(dislikeSound, dislikeVolume);
     }
 
     private void SpawnDislikeEffect()
@@ -474,6 +558,9 @@ public class SharkController : MonoBehaviourPun
 
         animator.SetTrigger(eatFishTriggerName);
 
+        // Звук поїдання риби - на всіх клієнтах одночасно з анімацією
+        PlaySoundForAll(SharkSound.EatFish);
+
         if (fish != null)
             Destroy(fish.gameObject);
 
@@ -520,6 +607,12 @@ public class SharkController : MonoBehaviourPun
         animator.SetTrigger(biteTriggerName);
 
         yield return new WaitForSeconds(biteDuration * biteImpactFraction);
+
+        // Звук укусу - у момент влучання, разом із деформацією острова.
+        // (Щоб грав на самому початку анімації - перенеси цей виклик
+        // одразу після animator.SetTrigger(biteTriggerName) вище.)
+        PlaySoundForAll(SharkSound.Bite);
+
         onBiteImpact?.Invoke();
 
         yield return new WaitForSeconds(biteDuration * (1f - biteImpactFraction));

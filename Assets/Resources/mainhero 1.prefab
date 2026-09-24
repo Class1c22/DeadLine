@@ -7984,6 +7984,9 @@ MonoBehaviour:
   catchScreenClipStateName: fishcatch
   catchScreenIdleStateName: New State
   catchScreenAnimDelay: 0.8
+  audioSource: {fileID: 3513680971364864935}
+  catchStartSound: {fileID: 8300000, guid: 72193f719fec1f24ea9c28db0c4342a5, type: 3}
+  catchStartVolume: 0.3
   biteWaitMin: 2
   biteWaitMax: 5
   biteTriggerName: Bite
