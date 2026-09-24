@@ -16,12 +16,12 @@ using UnityEngine;
 ///    змотається назад без риби, і вудка одразу повернеться в Idle.
 /// 3a. Якщо гачок приземлився У ВОДІ - через випадковий час (biteWaitMin..biteWaitMax)
 ///     спершу грається UI-анімація catchscreen (catchScreenAnimator, тригер
-///     catchScreenTriggerName) і триває catchScreenAnimDelay секунд. Увесь цей час
-///     стан ЛИШАЄТЬСЯ WaitingForBite, тому клік ПКМ у цей момент лише скасовує
-///     закидання (як і в п.2), а НЕ підсікає рибу. Тільки ПІСЛЯ цієї затримки риба
-///     фактично "клює" - відкривається вікно (strikeWindow, 3 сек), протягом якого
-///     на вудці ПОВТОРЮЄТЬСЯ (лупиться) анімація клювання (риба смикається), поки
-///     гравець не клікне ПКМ, щоб підсікти. Автоматично риба НЕ ловиться.
+///     catchScreenTriggerName) ТА ЗВУК catchStartSound, і триває catchScreenAnimDelay
+///     секунд. Увесь цей час стан ЛИШАЄТЬСЯ WaitingForBite, тому клік ПКМ у цей момент
+///     лише скасовує закидання (як і в п.2), а НЕ підсікає рибу. Тільки ПІСЛЯ цієї
+///     затримки риба фактично "клює" - відкривається вікно (strikeWindow, 3 сек),
+///     протягом якого на вудці ПОВТОРЮЄТЬСЯ (лупиться) анімація клювання (риба смикається),
+///     поки гравець не клікне ПКМ, щоб підсікти. Автоматично риба НЕ ловиться.
 /// 3b. Якщо гачок приземлився НА СУШІ - риба ніколи не клює. Гачок просто лежить,
 ///     гравець може в будь-який момент клікнути ПКМ, щоб змотати його назад (Cancel).
 /// 4. Якщо гравець встиг клікнути вчасно (тільки у воді) - грається анімація
@@ -87,6 +87,15 @@ public class FishingController : MonoBehaviour
     public string catchScreenIdleStateName = "New State";
     [Tooltip("Скільки секунд чекати (граючи UI-анімацію), перш ніж риба фактично клюне і відкриється вікно підсічки")]
     public float catchScreenAnimDelay = 1f;
+
+    [Header("Звук")]
+    [Tooltip("AudioSource, через який граються звуки риболовлі (краще 2D: Spatial Blend = 0, Play On Awake вимкнено)")]
+    public AudioSource audioSource;
+    [Tooltip("Звук, що грається в момент старту анімації клювання (catchscreen)")]
+    public AudioClip catchStartSound;
+    [Range(0f, 1f)]
+    [Tooltip("Гучність звуку старту анімації клювання")]
+    public float catchStartVolume = 1f;
 
     [Header("Клювання (тільки якщо гачок у воді)")]
     [Tooltip("Мінімальний і максимальний час очікування клювання (секунди)")]
@@ -259,8 +268,8 @@ public class FishingController : MonoBehaviour
 
     /// <summary>
     /// Гачок приземлився. У воді - чекаємо biteWait, тоді грається UI-анімація
-    /// catchscreen і ЛИШЕ ПІСЛЯ неї риба фактично "клює" (відкривається вікно
-    /// підсічки). На суші - просто лежимо, чекаємо, поки гравець скасує.
+    /// catchscreen (разом зі звуком) і ЛИШЕ ПІСЛЯ неї риба фактично "клює"
+    /// (відкривається вікно підсічки). На суші - просто лежимо, чекаємо, поки гравець скасує.
     /// </summary>
     private IEnumerator AfterLandingRoutine()
     {
@@ -294,6 +303,9 @@ public class FishingController : MonoBehaviour
         if (catchScreenAnimator != null && !string.IsNullOrEmpty(catchScreenClipStateName))
             catchScreenAnimator.Play(catchScreenClipStateName, 0, 0f);
 
+        // Звук у момент старту анімації клювання
+        PlayCatchStartSound();
+
         yield return new WaitForSeconds(catchScreenAnimDelay);
 
         // Повертаємо UI-аніматор в idle-стан, щоб наступного разу Play() знову
@@ -318,6 +330,13 @@ public class FishingController : MonoBehaviour
 
         activeRoutine = StartCoroutine(StrikeTimeoutRoutine());
         biteLoopRoutine = StartCoroutine(BiteAnimationLoopRoutine());
+    }
+
+    /// <summary>Грає звук старту анімації клювання (якщо AudioSource і AudioClip призначені).</summary>
+    private void PlayCatchStartSound()
+    {
+        if (audioSource != null && catchStartSound != null)
+            audioSource.PlayOneShot(catchStartSound, catchStartVolume);
     }
 
     /// <summary>Повторює bite-анімацію на вудці кожні biteRepeatInterval секунд, поки триває вікно підсічки.</summary>
