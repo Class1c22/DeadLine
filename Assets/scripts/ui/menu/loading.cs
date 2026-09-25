@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 
 // Живе в сцені меню, але переживає перехід в ігрову сцену
 // (DontDestroyOnLoad), бо повинен лишатись видимим весь час завантаження.
+[RequireComponent(typeof(AudioSource))]
 public class LoadingScreenController : MonoBehaviour
 {
     public static LoadingScreenController Instance { get; private set; }
@@ -10,6 +11,12 @@ public class LoadingScreenController : MonoBehaviour
     [SerializeField] private Animator jawAnimator;
     [SerializeField] private string readyTrigger = "Ready";
     [SerializeField] private string gameSceneName = "Game"; // назва ігрової сцени
+
+    [Header("Звуки щелепи")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip jawOpenSound;
+    [SerializeField] private AudioClip jawCloseSound;
+    [Range(0f, 1f)][SerializeField] private float sfxVolume = 1f;
 
     private bool sceneLoaded;
     private bool playerSpawned;
@@ -35,6 +42,12 @@ public class LoadingScreenController : MonoBehaviour
             Debug.LogError("[LoadingScreenController] Об'єкт НЕ кореневий - DontDestroyOnLoad " +
                             "його не збереже! Прибери його з-під батьківського об'єкта.");
         }
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
 
         DontDestroyOnLoad(gameObject);
         Debug.Log("[LoadingScreenController] DontDestroyOnLoad викликано.");
@@ -94,5 +107,30 @@ public class LoadingScreenController : MonoBehaviour
             readyFired = true;
             jawAnimator.SetTrigger(readyTrigger);
         }
+    }
+
+    // --- Виклики для Animation Events ---
+    // Додай Animation Event на клипі анімації щелепи:
+    // на кадрі, де щелепа РОЗКРИВАЄТЬСЯ -> викликай PlayJawOpenSound()
+    // на кадрі, де щелепа ЗАКРИВАЄТЬСЯ  -> викликай PlayJawCloseSound()
+
+    public void PlayJawOpenSound()
+    {
+        PlaySfx(jawOpenSound);
+    }
+
+    public void PlayJawCloseSound()
+    {
+        PlaySfx(jawCloseSound);
+    }
+
+    private void PlaySfx(AudioClip clip)
+    {
+        if (clip == null || audioSource == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(clip, sfxVolume);
     }
 }
