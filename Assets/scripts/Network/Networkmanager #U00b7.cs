@@ -57,7 +57,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.InRoom)
         {
-            Debug.Log("Сцена перезавантажена - спавню гравця напряму.");
             SpawnPlayer();
             return;
         }
@@ -89,7 +88,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         // Повернулись з меню: клієнт уже на Master Server - нового connect не треба.
         if (PhotonNetwork.IsConnectedAndReady)
         {
-            Debug.Log("Вже підключений до Photon Master Server - одразу заходжу в кімнату.");
             PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions(), TypedLobby.Default);
             yield break;
         }
@@ -101,9 +99,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         connectAttempts++;
         bool useTcp = connectAttempts > 1;
-
-        Debug.Log($"Підключення до Photon... (спроба {connectAttempts}/{maxOnlineAttempts}, " +
-                  $"протокол: {(useTcp ? "TCP" : "з PhotonServerSettings")})");
 
         AppSettings settings = new AppSettings();
         PhotonNetwork.PhotonServerSettings.AppSettings.CopyTo(settings);
@@ -165,13 +160,11 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
-        Debug.Log("Підключено до Photon Master Server. Приєднуюсь до кімнати...");
         PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions(), TypedLobby.Default);
     }
 
     public override void OnJoinedRoom()
     {
-        Debug.Log($"Зайшов у кімнату '{roomName}'. Гравців у кімнаті: {PhotonNetwork.CurrentRoom.PlayerCount}");
         SpawnPlayer();
     }
 

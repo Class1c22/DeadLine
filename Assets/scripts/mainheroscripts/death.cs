@@ -199,7 +199,6 @@ public class PlayerDeathHandler : MonoBehaviourPun
             if (t.name.ToLower().Contains("gameover"))
             {
                 gameOverUI = t.gameObject;
-                Debug.Log($"[PlayerDeathHandler] gameOverUI автоматично знайдено: {t.name}");
                 break;
             }
         }
@@ -340,8 +339,6 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
         if (photonView.IsMine)
         {
-            Debug.Log($"[PlayerDeathHandler] RPC_Die: playerCamera={(playerCamera != null ? playerCamera.name : "NULL")}, deathCamera={(deathCamera != null ? deathCamera.name : "NULL")}");
-
             if (playerCamera != null)
             {
                 playerCamera.enabled = false;
@@ -421,19 +418,12 @@ public class PlayerDeathHandler : MonoBehaviourPun
         for (Transform p = deathCamera.transform; p != null; p = p.parent)
             chain += $"{p.name}[{(p.gameObject.activeSelf ? "on" : "OFF")}] < ";
 
-        Debug.Log($"[PlayerDeathHandler] deathCamera: activeInHierarchy={deathCamera.gameObject.activeInHierarchy}, " +
-                  $"enabled={deathCamera.enabled}, depth={deathCamera.depth}, cullingMask={deathCamera.cullingMask}, " +
-                  $"targetTexture={(deathCamera.targetTexture != null ? deathCamera.targetTexture.name : "null")}, " +
-                  $"targetDisplay={deathCamera.targetDisplay}. Ієрархія: {chain}");
-
         if (!deathCamera.gameObject.activeInHierarchy)
             Debug.LogError("[PlayerDeathHandler] deathCamera ВСЕ ЩЕ неактивна в ієрархії - дивись ланцюжок батьків вище (OFF).");
 
         foreach (Camera cam in Camera.allCameras)
         {
             if (cam == deathCamera) continue;
-            Debug.Log($"[PlayerDeathHandler] Інша активна камера: '{cam.name}', depth={cam.depth}, " +
-                      $"targetTexture={(cam.targetTexture != null ? cam.targetTexture.name : "null")}");
         }
     }
 

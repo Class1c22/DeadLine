@@ -228,8 +228,6 @@ public class SharkController : MonoBehaviourPun
             likedSpecies.Add(id);
 
         preferencesReady = true;
-
-        Debug.Log("[SharkController] Смаки акули визначено. Любить: " + string.Join(", ", liked));
     }
 
     [PunRPC]
@@ -241,8 +239,6 @@ public class SharkController : MonoBehaviourPun
     [PunRPC]
     private void RPC_AddProgress(int delta, bool liked)
     {
-        Debug.Log($"[SharkController] RPC_AddProgress отримано delta={delta}, liked={liked} (likedSpecies зараз: [{string.Join(", ", likedSpecies)}], preferencesReady={preferencesReady})");
-
         if (progressBar != null)
             progressBar.AddFish(delta);
         else
@@ -511,8 +507,6 @@ public class SharkController : MonoBehaviourPun
         }
 
         bool liked = !preferencesTimedOut && !string.IsNullOrEmpty(speciesId) && likedSpecies.Contains(speciesId);
-
-        Debug.Log($"[SharkController] Риба з'їдена: speciesId='{speciesId}', likedSpecies=[{string.Join(", ", likedSpecies)}], liked={liked}, preferencesTimedOut={preferencesTimedOut}");
 
         Vector3 circleReturnPos = transform.position;
         Quaternion circleReturnRot = transform.rotation;

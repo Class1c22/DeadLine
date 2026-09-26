@@ -20,9 +20,6 @@ public class GameRestartManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public void RestartGame()
     {
-        Debug.Log($"[GameRestartManager] RestartGame() викликано кнопкою. " +
-                  $"IsConnected={PhotonNetwork.IsConnected}, InRoom={PhotonNetwork.InRoom}, " +
-                  $"IsMasterClient={PhotonNetwork.IsMasterClient}");
 
         if (!PhotonNetwork.InRoom)
         {
@@ -35,14 +32,11 @@ public class GameRestartManager : MonoBehaviourPunCallbacks, IOnEventCallback
         var sendOptions = SendOptions.SendReliable;
 
         PhotonNetwork.RaiseEvent(RestartRequestEventCode, null, options, sendOptions);
-        Debug.Log("[GameRestartManager] Подію RestartRequest відправлено MasterClient'у.");
     }
 
     public void OnEvent(EventData photonEvent)
     {
         if (photonEvent.Code != RestartRequestEventCode) return;
-
-        Debug.Log($"[GameRestartManager] Отримано RestartRequest. IsMasterClient={PhotonNetwork.IsMasterClient}");
 
         if (!PhotonNetwork.IsMasterClient)
         {
@@ -50,7 +44,6 @@ public class GameRestartManager : MonoBehaviourPunCallbacks, IOnEventCallback
             return;
         }
 
-        Debug.Log("[GameRestartManager] Перезавантажую сцену для всіх гравців...");
         PhotonNetwork.LoadLevel(SceneManager.GetActiveScene().buildIndex);
     }
 }
