@@ -13,14 +13,11 @@ public class WaterFishZone : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log("WaterFishZone: тригер спрацював з " + other.name + ", тег: " + other.tag);
-
         if (!other.CompareTag("Fish")) return;
 
         Pickupable pickupable = other.GetComponentInParent<Pickupable>();
         if (pickupable != null && pickupable.isHeld)
         {
-            Debug.Log($"[WaterFishZone] {other.name} - риба ще утримується гравцем (isHeld), ігноруємо.");
             return;
         }
 

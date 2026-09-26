@@ -24,9 +24,6 @@ public class LoadingScreenController : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log($"[LoadingScreenController] Awake на об'єкті '{gameObject.name}'. " +
-                  $"Instance вже існує: {Instance != null}. " +
-                  $"Батьківський об'єкт: {(transform.parent != null ? transform.parent.name : "немає (root)")}");
 
         if (Instance != null && Instance != this)
         {
@@ -50,7 +47,6 @@ public class LoadingScreenController : MonoBehaviour
         audioSource.playOnAwake = false;
 
         DontDestroyOnLoad(gameObject);
-        Debug.Log("[LoadingScreenController] DontDestroyOnLoad викликано.");
     }
 
     private void OnEnable()
@@ -65,7 +61,6 @@ public class LoadingScreenController : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log($"[LoadingScreenController] OnSceneLoaded: '{scene.name}' (очікую '{gameSceneName}')");
 
         if (scene.name != gameSceneName)
         {
@@ -86,14 +81,12 @@ public class LoadingScreenController : MonoBehaviour
     // Викликати з NetworkManager.SpawnPlayer() одразу після Instantiate
     public void OnPlayerSpawned()
     {
-        Debug.Log("[LoadingScreenController] OnPlayerSpawned() викликано.");
         playerSpawned = true;
         TryFireReady();
     }
 
     private void TryFireReady()
     {
-        Debug.Log($"[LoadingScreenController] TryFireReady: sceneLoaded={sceneLoaded}, playerSpawned={playerSpawned}, readyFired={readyFired}");
 
         if (sceneLoaded && playerSpawned && !readyFired)
         {
@@ -103,7 +96,6 @@ public class LoadingScreenController : MonoBehaviour
                 return;
             }
 
-            Debug.Log($"[LoadingScreenController] Викликаю тригер '{readyTrigger}'.");
             readyFired = true;
             jawAnimator.SetTrigger(readyTrigger);
         }

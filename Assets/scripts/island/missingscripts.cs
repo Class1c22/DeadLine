@@ -44,8 +44,6 @@ public static class FindMissingScripts
             }
         }
 
-        Debug.Log($"Перевірено об'єктів: {goCount}. Знайдено missing scripts: {missingCount}.");
-
         if (offenders.Count > 0)
         {
             // Одразу виділяємо всі проблемні об'єкти в Hierarchy,

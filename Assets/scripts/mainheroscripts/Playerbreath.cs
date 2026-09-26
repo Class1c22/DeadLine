@@ -216,8 +216,6 @@ public class PlayerBreath : MonoBehaviourPun
     {
         isUnderwater = true;
 
-        Debug.Log($"[PlayerBreath] {gameObject.name}: камера занурилась під воду. Кисень: {currentOxygen}/{maxOxygen}");
-
         if (oxygenBarRoot != null) oxygenBarRoot.SetActive(true);
         if (playerController != null) playerController.SetUnderwater(true);
     }
@@ -226,14 +224,11 @@ public class PlayerBreath : MonoBehaviourPun
     {
         isUnderwater = false;
 
-        Debug.Log($"[PlayerBreath] {gameObject.name}: камера вийшла з-під води.");
-
         if (playerController != null) playerController.SetUnderwater(false);
     }
 
     private void Die()
     {
-        Debug.Log("[PlayerBreath] Гравець задихнувся під водою.");
 
         if (deathHandler == null)
         {

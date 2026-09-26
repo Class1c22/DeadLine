@@ -80,7 +80,6 @@ public class PlayerPickup : MonoBehaviourPun
 
         if (inventoryManager != null && !inventoryManager.HasFreeSlot())
         {
-            Debug.Log("[PlayerPickup] Інвентар повний - неможливо підняти предмет.");
             return;
         }
 

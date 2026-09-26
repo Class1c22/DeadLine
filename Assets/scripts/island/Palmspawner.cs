@@ -183,8 +183,6 @@ public class PalmSpawner : MonoBehaviour
                 placed++;
             }
         }
-
-        Debug.Log($"[PalmSpawner] Розставлено {placed}/{palmCount} пальм.");
     }
 
     private bool TryFindValidPoint(float usableRadius, out Vector3 point, out Vector3 normal)

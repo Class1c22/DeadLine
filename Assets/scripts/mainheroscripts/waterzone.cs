@@ -51,13 +51,10 @@ public class WaterZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        Debug.Log($"[WaterZone] OnTriggerEnter: {other.name}, tag = {other.tag}");
-
         TrySpawnSplashFromRigidbody(other);
 
         if (!other.CompareTag("Player"))
         {
-            Debug.Log($"[WaterZone] Пропущено - тег не 'Player' (реальний тег: {other.tag})");
             return;
         }
 
@@ -67,31 +64,25 @@ public class WaterZone : MonoBehaviour
         var photonView = other.GetComponentInParent<Photon.Pun.PhotonView>();
         if (photonView == null)
         {
-            Debug.Log("[WaterZone] Пропущено - немає PhotonView на об'єкті (ні на ньому, ні на батьках)");
             return;
         }
 
         if (!photonView.IsMine)
         {
-            Debug.Log("[WaterZone] Пропущено - це чужий гравець (IsMine = false)");
             return;
         }
 
         var breath = other.GetComponentInParent<PlayerBreath>();
         if (breath == null)
         {
-            Debug.Log("[WaterZone] Пропущено - немає компонента PlayerBreath (ні на ньому, ні на батьках)");
             return;
         }
 
-        Debug.Log($"[WaterZone] {other.name} у зоні води. Поверхня на Y = {SurfaceY}");
         breath.SetInWaterVolume(true, SurfaceY);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        Debug.Log($"[WaterZone] OnTriggerExit: {other.name}, tag = {other.tag}");
-
         if (!other.CompareTag("Player")) return;
 
         var photonView = other.GetComponentInParent<Photon.Pun.PhotonView>();
@@ -100,7 +91,6 @@ public class WaterZone : MonoBehaviour
         var breath = other.GetComponentInParent<PlayerBreath>();
         if (breath != null)
         {
-            Debug.Log($"[WaterZone] {other.name} покинув зону води");
             breath.SetInWaterVolume(false, 0f);
         }
     }
@@ -121,7 +111,6 @@ public class WaterZone : MonoBehaviour
     {
         if (splashPrefab == null && splashSound == null)
         {
-            Debug.Log("[WaterZone] TrySpawnSplashFromRigidbody: і splashPrefab, і splashSound не призначені - виходжу");
             return;
         }
 
@@ -142,18 +131,14 @@ public class WaterZone : MonoBehaviour
 
     private void SpawnSplashInternal(Vector3 splashPos)
     {
-        Debug.Log($"[WaterZone] SpawnSplashInternal викликано в точці {splashPos}. splashPrefab={(splashPrefab != null)}, splashSound={(splashSound != null)}");
-
         // Якщо не призначено ні партикл, ні звук - робити нічого, навіть кулдаун не чіпаємо.
         if (splashPrefab == null && splashSound == null)
         {
-            Debug.Log("[WaterZone] SpawnSplashInternal: і splashPrefab, і splashSound не призначені в інспекторі - виходжу");
             return;
         }
 
         if (Time.time - lastSplashTime < splashCooldown)
         {
-            Debug.Log($"[WaterZone] SpawnSplashInternal: спрацював кулдаун ({Time.time - lastSplashTime:F2}с < {splashCooldown}с) - звук/спленш НЕ програється");
             return;
         }
         lastSplashTime = Time.time;
@@ -162,23 +147,17 @@ public class WaterZone : MonoBehaviour
         {
             ParticleSystem fx = Instantiate(splashPrefab, splashPos, Quaternion.identity);
             Destroy(fx.gameObject, 0.5f);
-            Debug.Log("[WaterZone] Партикл спленшу заспавнено");
         }
 
         PlaySplashSound(splashPos);
-
-        Debug.Log($"[WaterZone] Спленш у точці {splashPos}");
     }
 
     private void PlaySplashSound(Vector3 splashPos)
     {
         if (splashSound == null)
         {
-            Debug.Log("[WaterZone] PlaySplashSound: splashSound не призначений в інспекторі - звук не грає");
             return;
         }
-
-        Debug.Log($"[WaterZone] PlaySplashSound: створюю AudioSource для кліпу '{splashSound.name}', volume={splashVolume}");
 
         // AudioSource.PlayClipAtPoint сам створює тимчасовий GameObject зі своїм
         // AudioSource, програє звук і сам себе знищує - зручно для одноразових
@@ -194,8 +173,6 @@ public class WaterZone : MonoBehaviour
         source.pitch = Random.Range(splashPitchRange.x, splashPitchRange.y);
         source.spatialBlend = 1f; // 3D-звук - гучність залежить від відстані до слухача
         source.Play();
-
-        Debug.Log($"[WaterZone] PlaySplashSound: source.Play() викликано, isPlaying={source.isPlaying}, pitch={source.pitch}");
 
         Destroy(tempAudio, splashSound.length / Mathf.Max(source.pitch, 0.01f));
     }

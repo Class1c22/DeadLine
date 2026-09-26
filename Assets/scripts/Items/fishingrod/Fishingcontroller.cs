@@ -209,10 +209,6 @@ public class FishingController : MonoBehaviour
                 activeRoutine = StartCoroutine(AfterLandingRoutine());
             }
         }
-        else
-        {
-            Debug.Log("[FishingController] Гачок нікуди не влучив - спробуй прицілитись точніше.");
-        }
     }
 
     /// <summary>Гравець сам скасовує закидання (або закинув на сушу, де ловити нема на що, або ще триває UI-анімація клювання).</summary>
@@ -229,7 +225,6 @@ public class FishingController : MonoBehaviour
             biteLoopRoutine = null;
         }
 
-        Debug.Log("[FishingController] Закидання скасовано.");
         state = FishingState.Reeling;
 
         if (fishingLine != null)
@@ -277,7 +272,6 @@ public class FishingController : MonoBehaviour
 
         if (!lastCastWasWater)
         {
-            Debug.Log("[FishingController] Гачок на суші - риба тут не клює. Клікни ще раз, щоб змотати.");
             activeRoutine = null;
             yield break;
         }
@@ -295,7 +289,6 @@ public class FishingController : MonoBehaviour
         // у стані fishcatch з попереднього улову (тобто навіть без зворотного
         // переходу fishcatch -> idle у самому контролері). SetTrigger тут не
         // спрацював би вдруге, бо з поточного стану може не бути валідного переходу.
-        Debug.Log("[FishingController] Йде анімація клювання...");
 
         state = FishingState.BiteAnimation;
         earlyStrikeRequested = false;
@@ -317,7 +310,6 @@ public class FishingController : MonoBehaviour
         // не чекаючи ще одного кліку у вікні підсічки.
         if (earlyStrikeRequested)
         {
-            Debug.Log("[FishingController] Клікнув вчасно під час анімації - риба впіймана!");
             state = FishingState.Reeling;
             activeRoutine = null;
             StartCoroutine(ReelInRoutine());
@@ -326,7 +318,6 @@ public class FishingController : MonoBehaviour
 
         // --- Крок 2: тепер риба реально клюнула - відкриваємо вікно підсічки.
         state = FishingState.WaitingForStrike;
-        Debug.Log("[FishingController] Клює! Клікни ще раз (ПКМ), щоб підсікти!");
 
         activeRoutine = StartCoroutine(StrikeTimeoutRoutine());
         biteLoopRoutine = StartCoroutine(BiteAnimationLoopRoutine());
@@ -359,7 +350,6 @@ public class FishingController : MonoBehaviour
         // Якщо гравець так і не клікнув - риба зривається
         if (state == FishingState.WaitingForStrike)
         {
-            Debug.Log("[FishingController] Не встиг підсікти - риба зірвалась.");
             state = FishingState.Reeling;
             activeRoutine = null;
 
@@ -464,7 +454,6 @@ public class FishingController : MonoBehaviour
 
         if (!inventoryManager.HasFreeSlot())
         {
-            Debug.Log("[FishingController] Спіймали рибу, але інвентар повний - вона зірвалась.");
             return;
         }
 
@@ -494,7 +483,5 @@ public class FishingController : MonoBehaviour
         // так само, як звичайний підбір через PlayerPickup.
         fishInstance.Store();
         inventoryManager.AddItem(fishInstance);
-
-        Debug.Log($"[FishingController] Спіймано рибу: {prefab.name}");
     }
 }

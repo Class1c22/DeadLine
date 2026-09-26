@@ -54,8 +54,6 @@ public class FishProgressBar : MonoBehaviour
 
         UpdateVisual();
 
-        Debug.Log("Риба зарахована! Прогрес: " + currentFish + "/" + fishNeeded);
-
         if (currentFish >= fishNeeded && !isFull)
         {
             isFull = true;
@@ -81,7 +79,6 @@ public class FishProgressBar : MonoBehaviour
 
     private void OnBarFull()
     {
-        Debug.Log("Бар заповнено! Риби достатньо.");
         OnFishBarFull?.Invoke();
     }
 
