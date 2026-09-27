@@ -248,6 +248,8 @@ public class PlayerDeathHandler : MonoBehaviourPun
     /// </summary>
     public void ReturnToMenu()
     {
+        Debug.Log("[PlayerDeathHandler] ReturnToMenu() ВИКЛИКАНО");
+
         if (!photonView.IsMine) return;
 
         Cursor.lockState = CursorLockMode.None;
