@@ -1161,6 +1161,10 @@ PrefabInstance:
       propertyPath: sceneViewId
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 9050793520059778971, guid: d92607fbcd84315419e8f204413f911b, type: 3}
+      propertyPath: ObservedComponentsFoldoutOpen
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1344,7 +1348,7 @@ MonoBehaviour:
   dislikeTriggerName: Dislike
   reactionDelay: 1.5
   progressBar: {fileID: 262788147}
-  fishNeededToWin: 3
+  fishNeededToWin: 1
   maxPreferencesWaitSeconds: 3
   sharkRenderer: {fileID: 816734111}
   likeMaterial: {fileID: 0}

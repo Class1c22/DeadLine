@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 using UnityEngine.Playables;
+using UnityEngine.SceneManagement;
 
 // Підключає гру до Photon Cloud, спавнить гравця в спільній кімнаті і коректно
 // респавнить його після PhotonNetwork.LoadLevel (кнопка "New Game").
@@ -46,6 +47,11 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     private int connectAttempts;
     private bool playerSpawned;
     private bool goingOffline;
+
+    // Коли true - OnConnectedToMaster() НЕ намагається знову зайти в кімнату.
+    // Потрібно, бо LeaveRoom() транзитом проходить через ConnectedToMaster,
+    // а це б викликало миттєвий респавн замість переходу в меню.
+    private bool suppressAutoRejoin;
 
     private void Awake()
     {
@@ -160,7 +166,43 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
+        if (suppressAutoRejoin)
+        {
+            suppressAutoRejoin = false;
+            return;
+        }
+
         PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions(), TypedLobby.Default);
+    }
+
+    /// <summary>
+    /// Викликати з PlayerDeathHandler/PlayerWinHandler замість того, щоб
+    /// самим виходити з кімнати і чекати. ВАЖЛИВО: ця корутина виконується
+    /// на NetworkManager (звичайний об'єкт сцени), а НЕ на об'єкті гравця -
+    /// бо коли LeaveRoom() реально завершується, Photon автоматично знищує
+    /// всі PhotonNetwork.Instantiate-об'єкти локального гравця (в т.ч. той,
+    /// на якому висить PlayerDeathHandler). Якби корутина очікування
+    /// виконувалась на гравці, вона обривалась би РІВНО в момент завершення
+    /// виходу - тобто SceneManager.LoadScene() ніколи б не викликався.
+    /// </summary>
+    public void LeaveRoomAndLoadScene(string sceneName)
+    {
+        StartCoroutine(LeaveRoomAndLoadSceneRoutine(sceneName));
+    }
+
+    private IEnumerator LeaveRoomAndLoadSceneRoutine(string sceneName)
+    {
+        suppressAutoRejoin = true;
+
+        if (PhotonNetwork.InRoom)
+        {
+            PhotonNetwork.LeaveRoom();
+
+            while (PhotonNetwork.NetworkClientState == ClientState.Leaving)
+                yield return null;
+        }
+
+        SceneManager.LoadScene(sceneName);
     }
 
     public override void OnJoinedRoom()

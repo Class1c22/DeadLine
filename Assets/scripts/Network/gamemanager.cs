@@ -20,6 +20,7 @@ public class GameRestartManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public void RestartGame()
     {
+        Debug.Log("[GameRestartManager] RestartGame() ВИКЛИКАНО");
 
         if (!PhotonNetwork.InRoom)
         {
