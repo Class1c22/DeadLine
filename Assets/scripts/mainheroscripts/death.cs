@@ -264,7 +264,12 @@ public class PlayerDeathHandler : MonoBehaviourPun
         if (PhotonNetwork.InRoom)
         {
             PhotonNetwork.LeaveRoom();
-            while (PhotonNetwork.InRoom)
+
+            // ВАЖЛИВО: PhotonNetwork.InRoom стає false ОДРАЗУ ж після виклику
+            // LeaveRoom() (стан миттєво переходить у ClientState.Leaving),
+            // тому чекати саме InRoom безглуздо - цикл не зробить жодної
+            // ітерації. Чекаємо, поки клієнт реально вийде зі стану Leaving.
+            while (PhotonNetwork.NetworkClientState == Photon.Realtime.ClientState.Leaving)
                 yield return null;
         }
 
