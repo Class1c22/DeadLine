@@ -263,14 +263,26 @@ public class PlayerDeathHandler : MonoBehaviourPun
 
     private IEnumerator ReturnToMenuRoutine()
     {
+        // ВАЖЛИВО: сам вихід з кімнати і завантаження сцени виконує
+        // NetworkManager.LeaveRoomAndLoadScene(), а НЕ ця корутина. Причина:
+        // коли LeaveRoom() реально завершується, Photon автоматично знищує
+        // всі PhotonNetwork.Instantiate-об'єкти локального гравця - тобто і
+        // ОЦЕЙ САМИЙ об'єкт (mainhero). Якби очікування виконувалось тут,
+        // корутина обривалась би рівно в момент завершення виходу, і
+        // SceneManager.LoadScene() ніколи не викликався б. NetworkManager -
+        // звичайний об'єкт сцени, Photon його не чіпає, тож корутина на
+        // ньому спокійно доживає до кінця.
+        NetworkManager netManager = FindObjectOfType<NetworkManager>();
+        if (netManager != null)
+        {
+            netManager.LeaveRoomAndLoadScene(menuSceneName);
+            yield break;
+        }
+
+        // Фолбек, якщо NetworkManager раптом не знайдено на сцені.
         if (PhotonNetwork.InRoom)
         {
             PhotonNetwork.LeaveRoom();
-
-            // ВАЖЛИВО: PhotonNetwork.InRoom стає false ОДРАЗУ ж після виклику
-            // LeaveRoom() (стан миттєво переходить у ClientState.Leaving),
-            // тому чекати саме InRoom безглуздо - цикл не зробить жодної
-            // ітерації. Чекаємо, поки клієнт реально вийде зі стану Leaving.
             while (PhotonNetwork.NetworkClientState == Photon.Realtime.ClientState.Leaving)
                 yield return null;
         }
