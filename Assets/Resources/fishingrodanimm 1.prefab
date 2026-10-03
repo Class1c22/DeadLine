@@ -71,6 +71,9 @@ MonoBehaviour:
   catchScreenClipStateName: fishcatch
   catchScreenIdleStateName: New State
   catchScreenAnimDelay: 1
+  audioSource: {fileID: 0}
+  catchStartSound: {fileID: 0}
+  catchStartVolume: 1
   biteWaitMin: 2
   biteWaitMax: 5
   biteTriggerName: Bite

@@ -1348,7 +1348,7 @@ MonoBehaviour:
   dislikeTriggerName: Dislike
   reactionDelay: 1.5
   progressBar: {fileID: 262788147}
-  fishNeededToWin: 1
+  fishNeededToWin: 4
   maxPreferencesWaitSeconds: 3
   sharkRenderer: {fileID: 816734111}
   likeMaterial: {fileID: 0}
@@ -2458,7 +2458,7 @@ PrefabInstance:
       objectReference: {fileID: 195999932}
     - target: {fileID: 5739102772988243692, guid: e882fd0f92e91e24ea818e47f2785e5d, type: 3}
       propertyPath: totalBites
-      value: 1
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

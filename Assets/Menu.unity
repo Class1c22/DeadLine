@@ -806,7 +806,6 @@ GameObject:
   m_Component:
   - component: {fileID: 355442009}
   - component: {fileID: 355442008}
-  - component: {fileID: 355442011}
   - component: {fileID: 355442010}
   - component: {fileID: 355442012}
   m_Layer: 0
@@ -849,7 +848,6 @@ Transform:
   m_Children:
   - {fileID: 1777285282}
   - {fileID: 791585328}
-  - {fileID: 1996930343}
   - {fileID: 278323323}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -869,25 +867,6 @@ MonoBehaviour:
   delayBeforeClose: 3.5
   closeTrigger: Close
   nextSceneName: GamePlay
---- !u!114 &355442011
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 355442007}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c9d4c4c38bd20f4c9322609f7b073a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LoadingScreenController
-  jawAnimator: {fileID: 2008730664}
-  readyTrigger: Ready
-  gameSceneName: GamePlay
-  audioSource: {fileID: 0}
-  jawOpenSound: {fileID: 0}
-  jawCloseSound: {fileID: 0}
-  sfxVolume: 1
 --- !u!82 &355442012
 AudioSource:
   m_ObjectHideFlags: 0
@@ -2540,11 +2519,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6936666271672595052, guid: 2c5bbde820376f14b8248ba2954dea3b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 9.16
+      value: 9.1
       objectReference: {fileID: 0}
     - target: {fileID: 6936666271672595052, guid: 2c5bbde820376f14b8248ba2954dea3b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 386.01
+      value: 388.2
       objectReference: {fileID: 0}
     - target: {fileID: 6936666271672595052, guid: 2c5bbde820376f14b8248ba2954dea3b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -4572,6 +4551,8 @@ GameObject:
   - component: {fileID: 1996930346}
   - component: {fileID: 1996930345}
   - component: {fileID: 1996930344}
+  - component: {fileID: 1996930348}
+  - component: {fileID: 1996930347}
   m_Layer: 0
   m_Name: loading
   m_TagString: Untagged
@@ -4592,7 +4573,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2008730663}
-  m_Father: {fileID: 355442009}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -4662,6 +4643,122 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &1996930347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1996930342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c9d4c4c38bd20f4c9322609f7b073a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LoadingScreenController
+  jawAnimator: {fileID: 2008730664}
+  readyTrigger: Ready
+  gameSceneName: GamePlay
+  audioSource: {fileID: 0}
+  jawOpenSound: {fileID: 0}
+  jawCloseSound: {fileID: 0}
+  sfxVolume: 1
+--- !u!82 &1996930348
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1996930342}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &2008730662
 GameObject:
   m_ObjectHideFlags: 0
@@ -5009,4 +5106,5 @@ SceneRoots:
   - {fileID: 920706830}
   - {fileID: 2962549}
   - {fileID: 473743988}
+  - {fileID: 1996930343}
   - {fileID: 355442009}
